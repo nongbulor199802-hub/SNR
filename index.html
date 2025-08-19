@@ -7,17 +7,19 @@
     body { background: #111; color: white; font-family: Arial, sans-serif; }
     .card { background: #1a1a1a; padding: 15px; border-radius: 10px; margin: 10px 0; }
     button { padding: 6px 12px; margin: 5px; cursor: pointer; border-radius: 6px; }
+    #chart { width: 100%; height: 400px; margin-top: 20px; }
   </style>
+  <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <h2>📊 Sinyal SnR + MA</h2>
 
   <label>Pair:
     <select id="pair">
-      <option value="XAUUSD">XAUUSD (Gold)</option>
-      <option value="EURUSD">EURUSD</option>
-      <option value="GBPUSD">GBPUSD</option>
-      <option value="USDJPY">USDJPY</option>
+      <option value="XAU/USD">XAUUSD (Gold)</option>
+      <option value="EUR/USD">EURUSD</option>
+      <option value="GBP/USD">GBPUSD</option>
+      <option value="USD/JPY">USDJPY</option>
     </select>
   </label>
 
@@ -40,16 +42,11 @@
     <p id="snr"></p>
   </div>
 
-  <script>
-    const API_KEY = "40192b2b-9b48-4695-b721-102a0074a722"; // TwelveData Key
+  <div id="chart"></div>
 
-    // ubah XAUUSD -> XAU/USD
-    function formatSymbol(symbol) {
-      if (symbol.length === 6) {
-        return symbol.slice(0, 3) + "/" + symbol.slice(3, 6);
-      }
-      return symbol;
-    }
+  <script>
+    const API_KEY = "40192b2b-9b48-4695-b721-102a0074a722"; // TwelveData API Key
+    let chart, candleSeries, supportLine, resistanceLine;
 
     async function fetchData(symbol, interval) {
       const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=100&apikey=${API_KEY}`;
@@ -85,25 +82,61 @@
     }
 
     function findSnR(data) {
-      const closes = data.map(d => parseFloat(d.close));
       const highs = data.map(d => parseFloat(d.high));
       const lows = data.map(d => parseFloat(d.low));
+      const closes = data.map(d => parseFloat(d.close));
 
-      let resistance = Math.max(...highs.slice(-20)); // 20 candle terakhir
+      let resistance = Math.max(...highs.slice(-20));
       let support = Math.min(...lows.slice(-20));
+      let lastClose = closes[closes.length - 1];
 
-      return { support, resistance, lastClose: closes[closes.length - 1] };
+      return { support, resistance, lastClose };
+    }
+
+    function renderChart(data, support, resistance) {
+      if (!chart) {
+        chart = LightweightCharts.createChart(document.getElementById("chart"), {
+          layout: { background: { color: "#111" }, textColor: "white" },
+          grid: { vertLines: { color: "#333" }, horzLines: { color: "#333" } },
+          width: document.getElementById("chart").clientWidth,
+          height: 400
+        });
+        candleSeries = chart.addCandlestickSeries({
+          upColor: "#0f0", downColor: "#f00", borderUpColor: "#0f0", borderDownColor: "#f00", wickUpColor: "#0f0", wickDownColor: "#f00"
+        });
+      }
+
+      const candleData = data.map(d => ({
+        time: new Date(d.datetime).getTime() / 1000,
+        open: parseFloat(d.open),
+        high: parseFloat(d.high),
+        low: parseFloat(d.low),
+        close: parseFloat(d.close)
+      }));
+
+      candleSeries.setData(candleData);
+
+      // hapus garis lama kalau ada
+      if (supportLine) chart.removeSeries(supportLine);
+      if (resistanceLine) chart.removeSeries(resistanceLine);
+
+      // tambahkan garis support & resistance
+      supportLine = chart.addLineSeries({ color: "cyan", lineWidth: 2 });
+      resistanceLine = chart.addLineSeries({ color: "yellow", lineWidth: 2 });
+
+      const times = candleData.map(c => c.time);
+      supportLine.setData(times.map(t => ({ time: t, value: support })));
+      resistanceLine.setData(times.map(t => ({ time: t, value: resistance })));
     }
 
     async function getSignal() {
       const pair = document.getElementById("pair").value;
       const tf = document.getElementById("timeframe").value;
-      const symbol = formatSymbol(pair);
 
       document.getElementById("signal").innerText = "Mengambil data...";
       document.getElementById("snr").innerText = "";
 
-      const data = await fetchData(symbol, tf);
+      const data = await fetchData(pair, tf);
 
       if (!data) {
         document.getElementById("signal").innerText = `❌ Gagal ambil data ${pair}`;
@@ -127,6 +160,9 @@
 
       document.getElementById("signal").innerText = signal;
       document.getElementById("snr").innerText = `Support: ${support} | Resistance: ${resistance} | Close: ${lastClose}`;
+
+      // Render chart candlestick + garis SnR
+      renderChart(data, support, resistance);
     }
   </script>
 </body>
