@@ -1,169 +1,440 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>SnR Signal</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SnR + MA + RSI + Stoch + MACD — Live Signal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #111; color: white; font-family: Arial, sans-serif; }
-    .card { background: #1a1a1a; padding: 15px; border-radius: 10px; margin: 10px 0; }
-    button { padding: 6px 12px; margin: 5px; cursor: pointer; border-radius: 6px; }
-    #chart { width: 100%; height: 400px; margin-top: 20px; }
+    :root { --bg:#0d1117; --card:rgba(255,255,255,.06); --border:rgba(255,255,255,.12); }
+    body{ background:var(--bg); }
+    .glass{ background:var(--card); border:1px solid var(--border); backdrop-filter: blur(10px); }
+    .badge{ @apply rounded-full px-3 py-1 text-xs font-semibold; }
+    .grid-auto{ display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .tw-resize{ resize:vertical; overflow:auto; }
   </style>
-  <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
-<body>
-  <h2>📊 Sinyal SnR + MA</h2>
+<body class="text-gray-200 font-sans">
 
-  <label>Pair:
-    <select id="pair">
-      <option value="XAU/USD">XAUUSD (Gold)</option>
-      <option value="EUR/USD">EURUSD</option>
-      <option value="GBP/USD">GBPUSD</option>
-      <option value="USD/JPY">USDJPY</option>
-    </select>
-  </label>
+  <!-- Header -->
+  <header class="sticky top-0 z-10 bg-[#0d1117]/70 backdrop-blur border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-cyan-400/20 flex items-center justify-center">
+          <span class="text-cyan-400 font-bold">S</span>
+        </div>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold text-cyan-400">SnR Signal Pro</h1>
+          <p class="text-gray-400 text-xs">Support–Resistance + EMA + RSI + Stoch + MACD</p>
+        </div>
+      </div>
 
-  <label>Timeframe:
-    <select id="timeframe">
-      <option value="5min">M5</option>
-      <option value="15min">M15</option>
-      <option value="30min">M30</option>
-      <option value="1h">H1</option>
-      <option value="4h">H4</option>
-      <option value="1day">D1</option>
-    </select>
-  </label>
+      <!-- Controls -->
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <select id="pairSelect" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+          <option value="XAU/USD" data-tv="OANDA:XAUUSD">XAUUSD (Gold)</option>
+          <option value="EUR/USD" data-tv="OANDA:EURUSD">EURUSD</option>
+          <option value="GBP/USD" data-tv="OANDA:GBPUSD">GBPUSD</option>
+          <option value="USD/JPY" data-tv="OANDA:USDJPY">USDJPY</option>
+          <option value="BTC/USD" data-tv="BINANCE:BTCUSDT">BTCUSD</option>
+          <option value="ETH/USD" data-tv="BINANCE:ETHUSDT">ETHUSD</option>
+        </select>
 
-  <button onclick="getSignal()">Ambil/Refresh</button>
+        <select id="tfSelect" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+          <option value="5min" data-tv="5">M5</option>
+          <option value="15min" data-tv="15">M15</option>
+          <option value="60min" data-tv="60" selected>H1</option>
+          <option value="240min" data-tv="240">H4</option>
+          <option value="1day" data-tv="D">Daily</option>
+        </select>
 
-  <div class="card">
-    <h3>📈 Sinyal Terbaru</h3>
-    <p id="signal">Menunggu...</p>
-    <p id="snr"></p>
-  </div>
+        <button id="refreshBtn" class="bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold">
+          Refresh Sinyal
+        </button>
+      </div>
+    </div>
+  </header>
 
-  <div id="chart"></div>
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
+    <!-- Signal Card -->
+    <section class="glass rounded-2xl p-5">
+      <div class="flex flex-wrap items-start gap-4">
+        <div class="flex-1">
+          <div id="signalTitle" class="text-2xl font-extrabold text-gray-100">⏳ Mengambil data...</div>
+          <p id="signalMeta" class="text-gray-400 mt-1 text-sm">Pair: — | TF: —</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span id="accBadge" class="badge bg-gray-800 border border-gray-700">Akurasi: —</span>
+            <span class="badge bg-gray-800 border border-gray-700">Rasio TP:SL 2:1</span>
+            <span class="badge bg-gray-800 border border-gray-700">Hold: 30–120 menit</span>
+            <span id="timeBadge" class="badge bg-gray-800 border border-gray-700">Update: —</span>
+          </div>
+          <div id="targets" class="mt-4 grid sm:grid-cols-3 gap-3">
+            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
+              <div class="text-xs text-gray-400">Entry</div>
+              <div id="entryVal" class="text-lg font-bold">—</div>
+            </div>
+            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
+              <div class="text-xs text-gray-400">Target Profit</div>
+              <div id="tpVal" class="text-lg font-bold">—</div>
+            </div>
+            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
+              <div class="text-xs text-gray-400">Stop Loss</div>
+              <div id="slVal" class="text-lg font-bold">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Indicator Snapshot -->
+        <div class="w-full md:w-80 bg-gray-900/60 border border-gray-800 rounded-xl p-4">
+          <div class="text-sm font-semibold text-gray-300 mb-2">Snapshot Indikator</div>
+          <div class="grid-auto">
+            <div class="text-xs text-gray-400">EMA 7</div><div id="ema7" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">EMA 21</div><div id="ema21" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">RSI (14)</div><div id="rsi" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">%K Stoch (14)</div><div id="stoch" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">MACD</div><div id="macd" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">Support (20)</div><div id="sup" class="text-sm font-semibold">—</div>
+            <div class="text-xs text-gray-400">Resistance (20)</div><div id="res" class="text-sm font-semibold">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chart Card -->
+    <section class="glass rounded-2xl p-4">
+      <div class="flex items-center justify-between gap-3 pb-2 border-b border-gray-800">
+        <div class="text-sm text-gray-300 font-semibold">Chart (TradingView)</div>
+        <div class="flex items-center gap-3">
+          <label class="text-xs text-gray-400">Tinggi: <span id="hVal" class="text-gray-200 font-semibold">600</span>px</label>
+          <input id="hSlider" type="range" min="360" max="1000" value="600" class="w-40">
+          <button id="fullBtn" class="text-xs bg-gray-900 border border-gray-700 rounded-md px-3 py-1 hover:border-gray-500">Fullscreen</button>
+        </div>
+      </div>
+      <div id="tvWrap" class="rounded-lg overflow-hidden mt-3">
+        <div id="tradingview_chart" style="width:100%; height:600px;"></div>
+      </div>
+    </section>
+
+    <!-- Riwayat Sinyal -->
+    <section class="glass rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm font-semibold text-gray-300">Riwayat Sinyal (10 terakhir)</div>
+        <button id="clearHist" class="text-xs text-red-300 hover:text-red-200">Bersihkan</button>
+      </div>
+      <div id="history" class="space-y-2 text-sm"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-gray-500 pt-2 pb-6">
+      Data chart oleh TradingView, analisa by TwelveData. Edukasi — bukan saran investasi.
+    </footer>
+
+  </main>
+
+  <!-- TradingView -->
+  <script src="https://s3.tradingview.com/tv.js"></script>
   <script>
-    const API_KEY = "40192b2b-9b48-4695-b721-102a0074a722"; // TwelveData API Key
-    let chart, candleSeries, supportLine, resistanceLine;
+    // =============== CONFIG ===============
+    const API_KEY = "40192b2b-9b48-4695-b721-102a0074a722"; // TwelveData
+    const signalBox = {
+      title: document.getElementById('signalTitle'),
+      meta: document.getElementById('signalMeta'),
+      acc: document.getElementById('accBadge'),
+      time: document.getElementById('timeBadge'),
+      entry: document.getElementById('entryVal'),
+      tp: document.getElementById('tpVal'),
+      sl: document.getElementById('slVal'),
+      ema7: document.getElementById('ema7'),
+      ema21: document.getElementById('ema21'),
+      rsi: document.getElementById('rsi'),
+      stoch: document.getElementById('stoch'),
+      macd: document.getElementById('macd'),
+      sup: document.getElementById('sup'),
+      res: document.getElementById('res')
+    };
 
-    async function fetchData(symbol, interval) {
-      const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=100&apikey=${API_KEY}`;
+    const dom = {
+      pair: document.getElementById('pairSelect'),
+      tf: document.getElementById('tfSelect'),
+      refresh: document.getElementById('refreshBtn'),
+      hSlider: document.getElementById('hSlider'),
+      hVal: document.getElementById('hVal'),
+      fullBtn: document.getElementById('fullBtn'),
+      tvChart: document.getElementById('tradingview_chart'),
+      history: document.getElementById('history'),
+      clearHist: document.getElementById('clearHist')
+    };
 
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.values) {
-          return data.values.reverse(); // urut lama -> baru
-        } else {
-          throw new Error(data.message || "Data kosong");
-        }
-      } catch (err) {
-        console.error("Error fetch:", err);
-        return null;
-      }
+    // Load saved selection
+    function loadSaved() {
+      const sp = localStorage.getItem('PAIR'); const stf = localStorage.getItem('TF');
+      if (sp) [...dom.pair.options].forEach(o=>{ if(o.value===sp) o.selected=true; });
+      if (stf) [...dom.tf.options].forEach(o=>{ if(o.value===stf) o.selected=true; });
     }
 
-    function calculateMA(data, period) {
-      let ma = [];
-      for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) {
-          ma.push(null);
-        } else {
-          let sum = 0;
-          for (let j = 0; j < period; j++) {
-            sum += parseFloat(data[i - j].close);
-          }
-          ma.push(sum / period);
-        }
-      }
-      return ma;
+    // =============== TRADINGVIEW CHART ===============
+    let TV_SYMBOL = dom.pair.selectedOptions[0].dataset.tv;
+    let TV_INTERVAL = dom.tf.selectedOptions[0].dataset.tv;
+    function loadChart() {
+      TV_SYMBOL = dom.pair.selectedOptions[0].dataset.tv;
+      TV_INTERVAL = dom.tf.selectedOptions[0].dataset.tv;
+      dom.tvChart.innerHTML = "";
+      new TradingView.widget({
+        "width": "100%",
+        "height": parseInt(dom.hSlider.value),
+        "symbol": TV_SYMBOL,
+        "interval": TV_INTERVAL,
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "id",
+        "toolbar_bg": "#0d1117",
+        "enable_publishing": false,
+        "hide_top_toolbar": false,
+        "hide_legend": false,
+        "save_image": false,
+        "studies": [
+          "MAExp@tv-basicstudies",
+          "MASimple@tv-basicstudies"
+        ],
+        "container_id": "tradingview_chart"
+      });
     }
 
-    function findSnR(data) {
-      const highs = data.map(d => parseFloat(d.high));
-      const lows = data.map(d => parseFloat(d.low));
-      const closes = data.map(d => parseFloat(d.close));
-
-      let resistance = Math.max(...highs.slice(-20));
-      let support = Math.min(...lows.slice(-20));
-      let lastClose = closes[closes.length - 1];
-
-      return { support, resistance, lastClose };
+    // =============== INDICATOR MATH ===============
+    function EMAseries(values, period){
+      const k = 2/(period+1);
+      const out = [];
+      let emaPrev = values[0];
+      for (let i=0;i<values.length;i++){
+        const price = values[i];
+        if(i===0){ out.push(price); continue; }
+        const ema = price*k + emaPrev*(1-k);
+        out.push(ema); emaPrev = ema;
+      }
+      return out;
+    }
+    function RSI(values, period=14){
+      // Wilder's smoothing
+      if(values.length < period+1) return 50;
+      let gains=0, losses=0;
+      for(let i=1;i<=period;i++){
+        const diff = values[i]-values[i-1];
+        if(diff>=0) gains += diff; else losses -= diff;
+      }
+      gains/=period; losses/=period;
+      let rs = (losses===0) ? 100 : (gains/(losses||1e-9));
+      let rsi = 100 - (100/(1+rs));
+      for(let i=period+1;i<values.length;i++){
+        const diff = values[i]-values[i-1];
+        const gain = diff>0?diff:0, loss = diff<0? -diff:0;
+        gains = (gains*(period-1)+gain)/period;
+        losses = (losses*(period-1)+loss)/period;
+        rs = (losses===0) ? 100 : (gains/(losses||1e-9));
+        rsi = 100 - (100/(1+rs));
+      }
+      return rsi;
+    }
+    function Stochastic(values, kPeriod=14){
+      const recent = values.slice(-kPeriod);
+      const high = Math.max(...recent), low = Math.min(...recent);
+      const close = values[values.length-1];
+      return (high===low)?50: ((close-low)/(high-low))*100;
+    }
+    function MACD(values, short=12, long=26, signal=9){
+      const emaS = EMAseries(values, short);
+      const emaL = EMAseries(values, long);
+      const macd = emaS.map((v,i)=> v - (emaL[i]??v));
+      const signalLine = EMAseries(macd.slice(long-1), signal); // align start
+      const macdLast = macd[macd.length-1];
+      const signalLast = signalLine[signalLine.length-1];
+      return { macdLast, signalLast };
     }
 
-    function renderChart(data, support, resistance) {
-      if (!chart) {
-        chart = LightweightCharts.createChart(document.getElementById("chart"), {
-          layout: { background: { color: "#111" }, textColor: "white" },
-          grid: { vertLines: { color: "#333" }, horzLines: { color: "#333" } },
-          width: document.getElementById("chart").clientWidth,
-          height: 400
-        });
-        candleSeries = chart.addCandlestickSeries({
-          upColor: "#0f0", downColor: "#f00", borderUpColor: "#0f0", borderDownColor: "#f00", wickUpColor: "#0f0", wickDownColor: "#f00"
-        });
-      }
-
-      const candleData = data.map(d => ({
-        time: new Date(d.datetime).getTime() / 1000,
-        open: parseFloat(d.open),
-        high: parseFloat(d.high),
-        low: parseFloat(d.low),
-        close: parseFloat(d.close)
+    // =============== FETCH & SIGNAL LOGIC ===============
+    async function fetchOHLC(symbol, interval, size=300){
+      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${size}&apikey=${API_KEY}`;
+      const res = await fetch(url);
+      const j = await res.json();
+      if(!j || !j.values) throw new Error(j.message || "No data");
+      // reverse to old->new
+      return j.values.reverse().map(v=>({
+        time: v.datetime,
+        open: +v.open, high:+v.high, low:+v.low, close:+v.close
       }));
-
-      candleSeries.setData(candleData);
-
-      // hapus garis lama kalau ada
-      if (supportLine) chart.removeSeries(supportLine);
-      if (resistanceLine) chart.removeSeries(resistanceLine);
-
-      // tambahkan garis support & resistance
-      supportLine = chart.addLineSeries({ color: "cyan", lineWidth: 2 });
-      resistanceLine = chart.addLineSeries({ color: "yellow", lineWidth: 2 });
-
-      const times = candleData.map(c => c.time);
-      supportLine.setData(times.map(t => ({ time: t, value: support })));
-      resistanceLine.setData(times.map(t => ({ time: t, value: resistance })));
     }
 
-    async function getSignal() {
-      const pair = document.getElementById("pair").value;
-      const tf = document.getElementById("timeframe").value;
+    function computeSignal(ohlc, symbol, interval){
+      const closes = ohlc.map(d=>d.close);
+      const ema7Arr = EMAseries(closes,7);
+      const ema21Arr = EMAseries(closes,21);
+      const ema7 = ema7Arr.at(-1), ema21 = ema21Arr.at(-1);
+      const last = closes.at(-1);
 
-      document.getElementById("signal").innerText = "Mengambil data...";
-      document.getElementById("snr").innerText = "";
+      // SnR window
+      const win = 20;
+      const recentHigh = Math.max(...ohlc.slice(-win).map(d=>d.high));
+      const recentLow  = Math.min(...ohlc.slice(-win).map(d=>d.low));
 
-      const data = await fetchData(pair, tf);
+      const rsi = RSI(closes,14);
+      const stoch = Stochastic(closes,14);
+      const { macdLast, signalLast } = MACD(closes);
 
-      if (!data) {
-        document.getElementById("signal").innerText = `❌ Gagal ambil data ${pair}`;
-        return;
+      // Core rules
+      const bull = (ema7 > ema21) && (last > recentLow) && (rsi < 70) && (stoch < 80) && (macdLast > signalLast);
+      const bear = (ema7 < ema21) && (last < recentHigh) && (rsi > 30) && (stoch > 20) && (macdLast < signalLast);
+
+      // Confidence scoring
+      let score = 70; // base (MA + SnR)
+      if ((rsi < 60 && rsi > 40) || (stoch > 20 && stoch < 80)) score += 5; // neutral-good momentum
+      if ((macdLast>signalLast && ema7>ema21) || (macdLast<signalLast && ema7<ema21)) score += 10; // MACD confirm
+      if (Math.abs(last-ema7)/last < 0.003) score += 3; // price hugging ema
+      if (Math.abs(last-recentLow)/last < 0.002 || Math.abs(last-recentHigh)/last < 0.002) score += 2; // near SnR
+
+      score = Math.min(90, Math.max(55, Math.round(score)));
+
+      let title, color;
+      let tp, sl, entry = last;
+
+      if (bull){
+        const dist = Math.max( (last - recentLow), (ema7 - ema21) );
+        tp = last + dist * 0.5;     // 2:1 approx built into dist
+        sl = last - dist * 0.25;
+        title = `🚀 BUY ${symbol} • ${last.toFixed(4)}`;
+        color = 'text-green-400';
+      } else if (bear){
+        const dist = Math.max( (recentHigh - last), (ema21 - ema7) );
+        tp = last - dist * 0.5;
+        sl = last + dist * 0.25;
+        title = `🔻 SELL ${symbol} • ${last.toFixed(4)}`;
+        color = 'text-red-400';
+      } else {
+        tp = sl = NaN;
+        title = `⚠️ Sideways / Tunggu Konfirmasi • ${last.toFixed(4)}`;
+        color = 'text-yellow-400';
       }
 
-      // Hitung MA
-      const ma20 = calculateMA(data, 20);
-      const ma50 = calculateMA(data, 50);
-
-      // Ambil SnR
-      const { support, resistance, lastClose } = findSnR(data);
-
-      // Tentukan sinyal
-      let signal = "⚠️ Tidak ada sinyal";
-      if (ma20[ma20.length - 2] < ma50[ma50.length - 2] && ma20[ma20.length - 1] > ma50[ma50.length - 1] && lastClose > support) {
-        signal = "✅ BUY Signal (MA Cross + dekat Support)";
-      } else if (ma20[ma20.length - 2] > ma50[ma50.length - 2] && ma20[ma20.length - 1] < ma50[ma50.length - 1] && lastClose < resistance) {
-        signal = "❌ SELL Signal (MA Cross + dekat Resistance)";
-      }
-
-      document.getElementById("signal").innerText = signal;
-      document.getElementById("snr").innerText = `Support: ${support} | Resistance: ${resistance} | Close: ${lastClose}`;
-
-      // Render chart candlestick + garis SnR
-      renderChart(data, support, resistance);
+      return {
+        title, color, entry, tp, sl, score,
+        meta: `📌 Pair: ${symbol} | TF: ${interval}`,
+        ema7, ema21, rsi, stoch, macdStr: `${macdLast.toFixed(3)} / ${signalLast.toFixed(3)}`,
+        sup: recentLow, res: recentHigh
+      };
     }
+
+    function setSignalUI(sig){
+      signalBox.title.className = `text-2xl font-extrabold ${sig.color}`;
+      signalBox.title.innerHTML = sig.title;
+      signalBox.meta.textContent = sig.meta;
+      signalBox.acc.textContent = `Akurasi Teori: ${sig.score}%`;
+      signalBox.time.textContent = `Update: ${new Date().toLocaleTimeString()}`;
+
+      signalBox.entry.textContent = isFinite(sig.entry) ? formatNum(sig.entry) : '—';
+      signalBox.tp.textContent    = isFinite(sig.tp) ? formatNum(sig.tp) : '—';
+      signalBox.sl.textContent    = isFinite(sig.sl) ? formatNum(sig.sl) : '—';
+
+      signalBox.ema7.textContent  = formatNum(sig.ema7);
+      signalBox.ema21.textContent = formatNum(sig.ema21);
+      signalBox.rsi.textContent   = `${sig.rsi.toFixed(1)}`;
+      signalBox.stoch.textContent = `${sig.stoch.toFixed(1)}`;
+      signalBox.macd.textContent  = sig.macdStr;
+      signalBox.sup.textContent   = formatNum(sig.sup);
+      signalBox.res.textContent   = formatNum(sig.res);
+    }
+
+    function formatNum(n){
+      if(!isFinite(n)) return '—';
+      if (Math.abs(n) >= 1000) return n.toFixed(2);
+      return n.toFixed(4);
+    }
+
+    // =============== HISTORY ===============
+    function pushHistory(sig){
+      const key = 'SIG_HISTORY';
+      const item = {
+        t: Date.now(),
+        title: sig.title.replace(/<[^>]*>?/gm, ''),
+        entry: sig.entry, tp: sig.tp, sl: sig.sl, score: sig.score
+      };
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      arr.unshift(item);
+      localStorage.setItem(key, JSON.stringify(arr.slice(0,10)));
+      renderHistory();
+    }
+
+    function renderHistory(){
+      const arr = JSON.parse(localStorage.getItem('SIG_HISTORY') || '[]');
+      dom.history.innerHTML = arr.map(i=>{
+        const dt = new Date(i.t);
+        return `<div class="flex items-center justify-between bg-gray-900/60 border border-gray-800 rounded-lg px-3 py-2">
+          <div class="text-xs">${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}</div>
+          <div class="text-sm font-semibold">${i.title}</div>
+          <div class="text-xs text-gray-400">Entry ${formatNum(i.entry)} | TP ${formatNum(i.tp)} | SL ${formatNum(i.sl)} | Acc ${i.score}%</div>
+        </div>`;
+      }).join('') || `<div class="text-gray-500 text-sm">Belum ada riwayat.</div>`;
+    }
+
+    dom.clearHist.addEventListener('click', ()=>{
+      localStorage.removeItem('SIG_HISTORY');
+      renderHistory();
+    });
+
+    // =============== MAIN FLOW ===============
+    async function runSignal(){
+      const symbol = dom.pair.value;            // e.g. "XAU/USD" (TwelveData)
+      const interval = dom.tf.value;            // e.g. "60min"
+      try{
+        const ohlc = await fetchOHLC(symbol, interval, 300);
+        const sig = computeSignal(ohlc, symbol, interval);
+        setSignalUI(sig);
+        if(!/Sideways/.test(sig.title)) pushHistory(sig);
+      }catch(e){
+        setSignalUI({
+          title:`❌ Gagal ambil data (${e.message || 'Error'})`, color:'text-red-400',
+          entry:NaN,tp:NaN,sl:NaN,score:0,meta:`📌 Pair: ${symbol} | TF: ${interval}`,
+          ema7:NaN,ema21:NaN,rsi:NaN,stoch:NaN,macdStr:'—',sup:NaN,res:NaN
+        });
+      }
+    }
+
+    // =============== EVENTS & UI CONTROLS ===============
+    dom.pair.addEventListener('change', ()=>{
+      localStorage.setItem('PAIR', dom.pair.value);
+      loadChart(); runSignal();
+    });
+    dom.tf.addEventListener('change', ()=>{
+      localStorage.setItem('TF', dom.tf.value);
+      loadChart(); runSignal();
+    });
+    dom.refresh.addEventListener('click', runSignal);
+
+    dom.hSlider.addEventListener('input', (e)=>{
+      const h = parseInt(e.target.value,10);
+      dom.hVal.textContent = h;
+      dom.tvChart.style.height = h+'px';
+      // reload chart to apply height
+      loadChart();
+    });
+
+    dom.fullBtn.addEventListener('click', ()=>{
+      const wrap = document.getElementById('tvWrap');
+      if(!document.fullscreenElement){
+        wrap.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    });
+
+    // =============== INIT ===============
+    (function init(){
+      loadSaved();
+      renderHistory();
+      loadChart();
+      runSignal();
+      // auto refresh tiap 60 detik
+      setInterval(runSignal, 60*1000);
+    })();
   </script>
 </body>
 </html>
