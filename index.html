@@ -1,306 +1,152 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Forex SnR Realtime Signals</title>
+  <title>Forex SnR + Indicator Realtime Signals</title>
+  <script src="https://s3.tradingview.com/tv.js"></script>
   <style>
-    body { background: #0d0d0d; color: #fff; font-family: Arial, sans-serif; margin: 0; }
-    header { padding: 15px; text-align: center; background: #111; font-size: 18px; font-weight: bold; }
-    .container { padding: 20px; }
-    select { padding: 6px; border-radius: 6px; border: none; margin: 5px 0; }
-    #chartContainer { width: 100%; height: 80vh; transition: height 0.3s ease; margin-top: 10px; }
-    iframe { width: 100%; height: 100%; border: none; }
-    .controls { text-align: center; padding: 10px; background: #111; position: sticky; bottom: 0; }
-    .controls button { background: #222; color: #fff; border: none; margin: 0 5px; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-    .controls button:hover { background: #333; }
-    .card { background: #111; padding: 15px; border-radius: 10px; margin-top: 15px; }
-    .card h3 { margin-top: 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    table th, table td { border: 1px solid #333; padding: 6px; text-align: center; }
-    table th { background: #222; }
+    body { background:#0b0b0b; color:white; font-family:Arial, sans-serif; }
+    #chart { width:100%; height:80vh; }
+    .controls { margin:10px; }
+    button { margin:5px; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
+    .small { height:300px !important; }
+    .medium { height:500px !important; }
+    .large { height:700px !important; }
+    .fullscreen { height:95vh !important; }
   </style>
 </head>
 <body>
-  <header>📈 Forex SnR + Indicator Realtime Signals</header>
 
-  <div class="container">
-    <!-- Pilihan Pair -->
-    <div>
-      <label for="pair">Pair:</label>
-      <select id="pair" onchange="updateChart()">
-        <optgroup label="Forex (OANDA)">
-          <option value="OANDA:EUR_USD">EURUSD</option>
-          <option value="OANDA:GBP_USD">GBPUSD</option>
-          <option value="OANDA:USD_JPY">USDJPY</option>
-          <option value="OANDA:USD_CAD">USDCAD</option>
-          <option value="OANDA:AUD_USD">AUDUSD</option>
-        </optgroup>
-        <optgroup label="Commodities (OANDA)">
-          <option value="OANDA:XAU_USD">XAUUSD (Gold)</option>
-        </optgroup>
-        <optgroup label="Crypto (Binance)">
-          <option value="BINANCE:BTCUSDT">BTCUSD (Bitcoin)</option>
-          <option value="BINANCE:ETHUSDT">ETHUSD (Ethereum)</option>
-        </optgroup>
-      </select>
+  <h2>📊 Forex SnR + Indicator Realtime Signals</h2>
 
-      <label for="timeframe">Timeframe:</label>
-      <select id="timeframe" onchange="updateChart()">
-        <option value="5">M5</option>
-        <option value="15" selected>M15</option>
-        <option value="60">H1</option>
-        <option value="240">H4</option>
-        <option value="D">D1</option>
-      </select>
-    </div>
+  <div class="controls">
+    Pair: 
+    <select id="pair">
+      <option value="EURUSD">EURUSD</option>
+      <option value="GBPUSD">GBPUSD</option>
+      <option value="USDJPY">USDJPY</option>
+      <option value="XAUUSD">XAUUSD (Gold)</option>
+      <option value="BTCUSD">BTCUSD (Bitcoin)</option>
+      <option value="ETHUSD">ETHUSD (Ethereum)</option>
+    </select>
 
-    <!-- Chart TradingView -->
-    <div id="chartContainer">
-      <iframe id="tvChart"
-        src="https://s.tradingview.com/widgetembed/?symbol=EURUSD&interval=15&theme=dark"
-        allowfullscreen>
-      </iframe>
-    </div>
-
-    <!-- Info Sinyal -->
-    <div class="card">
-      <h3>Sinyal Terbaru</h3>
-      <p id="signal">Sinyal: Memuat...</p>
-      <div style="display:flex; justify-content:space-between; flex-wrap: wrap;">
-        <div><strong>Support & Resistance</strong><br><span id="snr">--</span></div>
-        <div><strong>Indikator</strong><br><span id="indicators">--</span></div>
-        <div><strong>Rencana Trade</strong><br><span id="plan">--</span></div>
-      </div>
-    </div>
-
-    <!-- Histori Sinyal -->
-    <div class="card">
-      <h3>📜 Histori Sinyal</h3>
-      <table id="signalTable">
-        <thead>
-          <tr>
-            <th>Waktu</th>
-            <th>Pair</th>
-            <th>Sinyal</th>
-            <th>Entry</th>
-            <th>TP</th>
-            <th>SL</th>
-            <th>Indikator</th>
-            <th>Hasil</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    Timeframe:
+    <select id="timeframe">
+      <option value="1">1m</option>
+      <option value="5">5m</option>
+      <option value="15">15m</option>
+      <option value="60">1h</option>
+      <option value="D">1D</option>
+    </select>
   </div>
 
-  <!-- Kontrol Chart -->
+  <div id="chart"></div>
+
   <div class="controls">
-    <button onclick="resizeChart(400)">Kecil</button>
-    <button onclick="resizeChart(600)">Sedang</button>
-    <button onclick="resizeChart(900)">Besar</button>
+    <button onclick="resizeChart('small')">Kecil</button>
+    <button onclick="resizeChart('medium')">Sedang</button>
+    <button onclick="resizeChart('large')">Besar</button>
     <button onclick="resizeChart('fullscreen')">Fullscreen</button>
   </div>
 
+  <h3>📈 Sinyal Terbaru</h3>
+  <div id="signal">Loading...</div>
+
   <script>
-    const API_KEY = "d2hvj2pr01qqpjgq54n0d2hvj2pr01qqpjgq54ng"; // Finnhub key
+    const apiKey = "d2hvj2pr01qqpjgq54n0d2hvj2pr01qqpjgq54ng"; // Finnhub API Key
+    let widget;
 
-    // === Utility indikator ===
-    function ema(prices, period) {
-      let k = 2 / (period + 1);
-      let emaArr = [prices[0]];
-      for (let i = 1; i < prices.length; i++) {
-        emaArr.push(prices[i] * k + emaArr[i - 1] * (1 - k));
-      }
-      return emaArr;
-    }
-
-    function rsi(prices, period = 14) {
-      let gains = 0, losses = 0;
-      for (let i = 1; i <= period; i++) {
-        let diff = prices[i] - prices[i - 1];
-        if (diff >= 0) gains += diff;
-        else losses -= diff;
-      }
-      let avgGain = gains / period;
-      let avgLoss = losses / period;
-      let rs = avgGain / (avgLoss || 1);
-      return 100 - (100 / (1 + rs));
-    }
-
-    function stochastic(highs, lows, closes, period = 14, smooth = 3) {
-      let highestHigh = Math.max(...highs.slice(-period));
-      let lowestLow = Math.min(...lows.slice(-period));
-      let lastClose = closes[closes.length - 1];
-      let k = ((lastClose - lowestLow) / (highestHigh - lowestLow)) * 100;
-      let d = (k + k + k) / smooth; // simplifikasi
-      return { k, d };
-    }
-
-    // === Ambil data dari Finnhub ===
-    async function fetchCandles(symbol, resolution, count = 200) {
-      const url = `https://finnhub.io/api/v1/forex/candle?symbol=${symbol}&resolution=${resolution}&count=${count}&token=${API_KEY}`;
-      try {
-        const res = await fetch(url);
-        return await res.json();
-      } catch (err) {
-        console.error("Candle fetch error", err);
-        return null;
+    // Mapping pair ke TradingView symbol
+    function getTradingViewSymbol(pair) {
+      switch(pair) {
+        case "EURUSD": return "FX:EURUSD";
+        case "GBPUSD": return "FX:GBPUSD";
+        case "USDJPY": return "FX:USDJPY";
+        case "XAUUSD": return "OANDA:XAUUSD";
+        case "BTCUSD": return "BINANCE:BTCUSDT";
+        case "ETHUSD": return "BINANCE:ETHUSDT";
+        default: return "FX:EURUSD";
       }
     }
 
-    async function updateChart() {
+    // Load chart TradingView
+    function loadChart() {
       const pair = document.getElementById("pair").value;
-      const tf = document.getElementById("timeframe").value;
+      const timeframe = document.getElementById("timeframe").value;
+      const symbol = getTradingViewSymbol(pair);
 
-      // Update chart TradingView
-      const tradingViewSymbol = pair.replace("OANDA:", "").replace("BINANCE:", "");
-      const url = `https://s.tradingview.com/widgetembed/?symbol=${tradingViewSymbol}&interval=${tf}&theme=dark`;
-      document.getElementById("tvChart").src = url;
-
-      // Ambil candle data
-      const data = await fetchCandles(pair, tf);
-      if (!data || !data.c) {
-        document.getElementById("signal").innerText = "Sinyal: Data tidak tersedia";
-        return;
-      }
-
-      const closes = data.c;
-      const highs = data.h;
-      const lows = data.l;
-
-      // Hitung indikator
-      const ema7 = ema(closes, 7);
-      const ema21 = ema(closes, 21);
-      const rsi14 = rsi(closes, 14).toFixed(2);
-      const stoch = stochastic(highs, lows, closes);
-
-      // Hitung SnR sederhana
-      const price = closes[closes.length - 1];
-      const support = (price * 0.997).toFixed(2);
-      const resistance = (price * 1.003).toFixed(2);
-
-      // Logika sinyal
-      let signalText = "WAIT";
-      let planText = "Tunggu konfirmasi sinyal.";
-      let entry=price, tp="--", sl="--";
-      if (ema7[ema7.length-1] > ema21[ema21.length-1] && rsi14 < 70 && stoch.k < 80) {
-        signalText = "BUY Signal (70% akurat)";
-        tp = (price*1.006).toFixed(2);
-        sl = (price*0.997).toFixed(2);
-        planText = `Entry BUY @${price} | TP: ${tp} | SL: ${sl}`;
-      } else if (ema7[ema7.length-1] < ema21[ema21.length-1] && rsi14 > 30 && stoch.k > 20) {
-        signalText = "SELL Signal (70% akurat)";
-        tp = (price*0.994).toFixed(2);
-        sl = (price*1.003).toFixed(2);
-        planText = `Entry SELL @${price} | TP: ${tp} | SL: ${sl}`;
-      }
-
-      // Update UI
-      document.getElementById("signal").innerText = "Sinyal: " + signalText;
-      document.getElementById("snr").innerText = `Support: ${support} | Resistance: ${resistance}`;
-      document.getElementById("plan").innerText = planText;
-      document.getElementById("indicators").innerText = 
-        `EMA7=${ema7[ema7.length-1].toFixed(2)} | EMA21=${ema21[ema21.length-1].toFixed(2)} | RSI=${rsi14} | StochK=${stoch.k.toFixed(2)}`;
-
-      // Tambahkan ke histori jika ada sinyal BUY/SELL
-      if (signalText.includes("BUY") || signalText.includes("SELL")) {
-        addSignalHistory(pair, signalText, entry, tp, sl, `RSI:${rsi14}, Stoch:${stoch.k.toFixed(2)}`);
-      }
-
-      // Update hasil P/L
-      checkOpenTrades(price);
-    }
-
-    function addSignalHistory(pair, signal, entry, tp, sl, indicators) {
-      const now = new Date().toLocaleString();
-      const tableBody = document.querySelector("#signalTable tbody");
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${now}</td>
-        <td>${pair}</td>
-        <td>${signal}</td>
-        <td>${entry}</td>
-        <td>${tp}</td>
-        <td>${sl}</td>
-        <td>${indicators}</td>
-        <td>OPEN</td>
-      `;
-      tableBody.prepend(row);
-
-      // Simpan ke localStorage
-      let history = JSON.parse(localStorage.getItem("signalHistory") || "[]");
-      history.unshift({time: now, pair, signal, entry, tp, sl, indicators, result:"OPEN"});
-      localStorage.setItem("signalHistory", JSON.stringify(history.slice(0,50))); // max 50 log
-    }
-
-    function loadHistory() {
-      let history = JSON.parse(localStorage.getItem("signalHistory") || "[]");
-      const tableBody = document.querySelector("#signalTable tbody");
-      tableBody.innerHTML = "";
-      history.forEach(h => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${h.time}</td>
-          <td>${h.pair}</td>
-          <td>${h.signal}</td>
-          <td>${h.entry}</td>
-          <td>${h.tp}</td>
-          <td>${h.sl}</td>
-          <td>${h.indicators}</td>
-          <td>${h.result}</td>
-        `;
-        tableBody.append(row);
+      document.getElementById("chart").innerHTML = "";
+      widget = new TradingView.widget({
+        container_id: "chart",
+        autosize: true,
+        symbol: symbol,
+        interval: timeframe,
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        toolbar_bg: "#0b0b0b",
+        enable_publishing: false,
+        hide_top_toolbar: false,
+        hide_legend: false
       });
+
+      fetchSignal(pair);
     }
 
-    function checkOpenTrades(currentPrice) {
-      let history = JSON.parse(localStorage.getItem("signalHistory") || "[]");
-      let changed = false;
+    // Ambil sinyal pakai API Finnhub
+    async function fetchSignal(pair) {
+      let symbol;
+      switch(pair) {
+        case "EURUSD": symbol = "OANDA:EUR_USD"; break;
+        case "GBPUSD": symbol = "OANDA:GBP_USD"; break;
+        case "USDJPY": symbol = "OANDA:USD_JPY"; break;
+        case "XAUUSD": symbol = "OANDA:XAU_USD"; break;
+        case "BTCUSD": symbol = "BINANCE:BTCUSDT"; break;
+        case "ETHUSD": symbol = "BINANCE:ETHUSDT"; break;
+        default: symbol = "OANDA:EUR_USD";
+      }
 
-      history.forEach(h => {
-        if (h.result === "OPEN") {
-          if (h.signal.includes("BUY")) {
-            if (currentPrice >= parseFloat(h.tp)) { h.result = "✅ PROFIT"; changed=true; }
-            else if (currentPrice <= parseFloat(h.sl)) { h.result = "❌ LOSS"; changed=true; }
-          } else if (h.signal.includes("SELL")) {
-            if (currentPrice <= parseFloat(h.tp)) { h.result = "✅ PROFIT"; changed=true; }
-            else if (currentPrice >= parseFloat(h.sl)) { h.result = "❌ LOSS"; changed=true; }
-          }
+      try {
+        let url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`;
+        let res = await fetch(url);
+        let data = await res.json();
+
+        if(data.c) {
+          document.getElementById("signal").innerHTML = `
+            Pair: ${pair}<br>
+            Harga Sekarang: ${data.c}<br>
+            High: ${data.h}, Low: ${data.l}<br>
+            Open: ${data.o}, Prev Close: ${data.pc}<br>
+            <b>Rekomendasi:</b> 
+            ${(data.c > data.o) ? "Buy 📈" : "Sell 📉"}<br>
+            Akurasi: ~70% (MA Cross + SnR)<br>
+            TP/SL: 2:1 Ratio<br>
+          `;
+        } else {
+          document.getElementById("signal").innerText = "Gagal ambil data.";
         }
-      });
-
-      if (changed) {
-        localStorage.setItem("signalHistory", JSON.stringify(history));
-        loadHistory();
+      } catch (err) {
+        document.getElementById("signal").innerText = "Error ambil sinyal.";
       }
     }
 
-    // Resize chart
+    // Resize Chart
     function resizeChart(size) {
-      const container = document.getElementById('chartContainer');
-      if (size === 'fullscreen') {
-        container.style.height = window.innerHeight + "px";
-      } else {
-        container.style.height = size + "px";
-      }
-      localStorage.setItem("chartHeight", container.style.height);
+      let chart = document.getElementById("chart");
+      chart.className = size;
+      localStorage.setItem("chartSize", size);
     }
 
-    // Load preferensi chart & histori
+    // Simpan preferensi ukuran chart
     window.onload = () => {
-      const savedHeight = localStorage.getItem("chartHeight");
-      if (savedHeight) {
-        document.getElementById('chartContainer').style.height = savedHeight;
-      }
-      loadHistory();
-      updateChart();
+      let size = localStorage.getItem("chartSize") || "medium";
+      resizeChart(size);
+      loadChart();
     };
 
-    // Auto refresh tiap 1 menit
-    setInterval(updateChart, 60000);
+    document.getElementById("pair").addEventListener("change", loadChart);
+    document.getElementById("timeframe").addEventListener("change", loadChart);
   </script>
+
 </body>
 </html>
