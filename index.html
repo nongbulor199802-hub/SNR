@@ -1,440 +1,219 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SnR + MA + RSI + Stoch + MACD — Live Signal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>SnR Signal Pro - Multi Pair</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <style>
-    :root { --bg:#0d1117; --card:rgba(255,255,255,.06); --border:rgba(255,255,255,.12); }
-    body{ background:var(--bg); }
-    .glass{ background:var(--card); border:1px solid var(--border); backdrop-filter: blur(10px); }
-    .badge{ @apply rounded-full px-3 py-1 text-xs font-semibold; }
-    .grid-auto{ display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-    .tw-resize{ resize:vertical; overflow:auto; }
+    body { 
+      background:#0f172a; 
+      color:#f8fafc; 
+      font-family:'Segoe UI', Tahoma, sans-serif; 
+      margin:0; 
+      padding:0;
+    }
+    header {
+      background:#1e293b; 
+      padding:20px; 
+      text-align:center;
+      box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    }
+    h1 {
+      margin:0;
+      color:#38bdf8;
+      font-size:28px;
+      letter-spacing:1px;
+    }
+    main { padding:20px; max-width:1200px; margin:auto; }
+    .controls {
+      margin-bottom:20px; 
+      display:flex; 
+      gap:10px; 
+      align-items:center;
+    }
+    select {
+      padding:10px 14px; 
+      border-radius:10px; 
+      border:none; 
+      font-size:16px;
+      background:#334155; 
+      color:#f8fafc;
+    }
+    .card {
+      background:#1e293b; 
+      padding:20px; 
+      border-radius:14px; 
+      margin-top:20px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.6);
+    }
+    h2 { margin-top:0; }
+    .buy { color:#22c55e; font-weight:bold; }
+    .sell { color:#ef4444; font-weight:bold; }
+    .neutral { color:#eab308; font-weight:bold; }
+    iframe {
+      width:100%; 
+      height:500px; 
+      border:none; 
+      border-radius:14px; 
+      margin-top:20px;
+    }
   </style>
 </head>
-<body class="text-gray-200 font-sans">
-
-  <!-- Header -->
-  <header class="sticky top-0 z-10 bg-[#0d1117]/70 backdrop-blur border-b border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-3">
-        <div class="h-9 w-9 rounded-xl bg-cyan-400/20 flex items-center justify-center">
-          <span class="text-cyan-400 font-bold">S</span>
-        </div>
-        <div>
-          <h1 class="text-lg md:text-xl font-bold text-cyan-400">SnR Signal Pro</h1>
-          <p class="text-gray-400 text-xs">Support–Resistance + EMA + RSI + Stoch + MACD</p>
-        </div>
-      </div>
-
-      <!-- Controls -->
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <select id="pairSelect" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-          <option value="XAU/USD" data-tv="OANDA:XAUUSD">XAUUSD (Gold)</option>
-          <option value="EUR/USD" data-tv="OANDA:EURUSD">EURUSD</option>
-          <option value="GBP/USD" data-tv="OANDA:GBPUSD">GBPUSD</option>
-          <option value="USD/JPY" data-tv="OANDA:USDJPY">USDJPY</option>
-          <option value="BTC/USD" data-tv="BINANCE:BTCUSDT">BTCUSD</option>
-          <option value="ETH/USD" data-tv="BINANCE:ETHUSDT">ETHUSD</option>
-        </select>
-
-        <select id="tfSelect" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-          <option value="5min" data-tv="5">M5</option>
-          <option value="15min" data-tv="15">M15</option>
-          <option value="60min" data-tv="60" selected>H1</option>
-          <option value="240min" data-tv="240">H4</option>
-          <option value="1day" data-tv="D">Daily</option>
-        </select>
-
-        <button id="refreshBtn" class="bg-cyan-500 hover:bg-cyan-400 text-gray-900 rounded-lg px-3 py-2 text-sm font-semibold">
-          Refresh Sinyal
-        </button>
-      </div>
-    </div>
+<body>
+  <header>
+    <h1>📊 SnR Signal Pro</h1>
   </header>
+  <main>
+    <div class="controls">
+      <label for="pair">Pilih Pair:</label>
+      <select id="pair" onchange="loadData()">
+        <option value="xauusd">XAUUSD (Gold)</option>
+        <option value="eurusd">EURUSD</option>
+        <option value="gbpusd">GBPUSD</option>
+        <option value="usdjpy">USDJPY</option>
+        <option value="btcusd">BTCUSD</option>
+        <option value="ethusd">ETHUSD</option>
+      </select>
+    </div>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
-
-    <!-- Signal Card -->
-    <section class="glass rounded-2xl p-5">
-      <div class="flex flex-wrap items-start gap-4">
-        <div class="flex-1">
-          <div id="signalTitle" class="text-2xl font-extrabold text-gray-100">⏳ Mengambil data...</div>
-          <p id="signalMeta" class="text-gray-400 mt-1 text-sm">Pair: — | TF: —</p>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <span id="accBadge" class="badge bg-gray-800 border border-gray-700">Akurasi: —</span>
-            <span class="badge bg-gray-800 border border-gray-700">Rasio TP:SL 2:1</span>
-            <span class="badge bg-gray-800 border border-gray-700">Hold: 30–120 menit</span>
-            <span id="timeBadge" class="badge bg-gray-800 border border-gray-700">Update: —</span>
-          </div>
-          <div id="targets" class="mt-4 grid sm:grid-cols-3 gap-3">
-            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
-              <div class="text-xs text-gray-400">Entry</div>
-              <div id="entryVal" class="text-lg font-bold">—</div>
-            </div>
-            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
-              <div class="text-xs text-gray-400">Target Profit</div>
-              <div id="tpVal" class="text-lg font-bold">—</div>
-            </div>
-            <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3">
-              <div class="text-xs text-gray-400">Stop Loss</div>
-              <div id="slVal" class="text-lg font-bold">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Indicator Snapshot -->
-        <div class="w-full md:w-80 bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-          <div class="text-sm font-semibold text-gray-300 mb-2">Snapshot Indikator</div>
-          <div class="grid-auto">
-            <div class="text-xs text-gray-400">EMA 7</div><div id="ema7" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">EMA 21</div><div id="ema21" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">RSI (14)</div><div id="rsi" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">%K Stoch (14)</div><div id="stoch" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">MACD</div><div id="macd" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">Support (20)</div><div id="sup" class="text-sm font-semibold">—</div>
-            <div class="text-xs text-gray-400">Resistance (20)</div><div id="res" class="text-sm font-semibold">—</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Chart Card -->
-    <section class="glass rounded-2xl p-4">
-      <div class="flex items-center justify-between gap-3 pb-2 border-b border-gray-800">
-        <div class="text-sm text-gray-300 font-semibold">Chart (TradingView)</div>
-        <div class="flex items-center gap-3">
-          <label class="text-xs text-gray-400">Tinggi: <span id="hVal" class="text-gray-200 font-semibold">600</span>px</label>
-          <input id="hSlider" type="range" min="360" max="1000" value="600" class="w-40">
-          <button id="fullBtn" class="text-xs bg-gray-900 border border-gray-700 rounded-md px-3 py-1 hover:border-gray-500">Fullscreen</button>
-        </div>
-      </div>
-      <div id="tvWrap" class="rounded-lg overflow-hidden mt-3">
-        <div id="tradingview_chart" style="width:100%; height:600px;"></div>
-      </div>
-    </section>
-
-    <!-- Riwayat Sinyal -->
-    <section class="glass rounded-2xl p-5">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm font-semibold text-gray-300">Riwayat Sinyal (10 terakhir)</div>
-        <button id="clearHist" class="text-xs text-red-300 hover:text-red-200">Bersihkan</button>
-      </div>
-      <div id="history" class="space-y-2 text-sm"></div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="text-center text-xs text-gray-500 pt-2 pb-6">
-      Data chart oleh TradingView, analisa by TwelveData. Edukasi — bukan saran investasi.
-    </footer>
-
+    <div id="signal" class="card">Loading...</div>
+    <div id="chart"></div>
   </main>
 
-  <!-- TradingView -->
-  <script src="https://s3.tradingview.com/tv.js"></script>
   <script>
-    // =============== CONFIG ===============
-    const API_KEY = "40192b2b-9b48-4695-b721-102a0074a722"; // TwelveData
-    const signalBox = {
-      title: document.getElementById('signalTitle'),
-      meta: document.getElementById('signalMeta'),
-      acc: document.getElementById('accBadge'),
-      time: document.getElementById('timeBadge'),
-      entry: document.getElementById('entryVal'),
-      tp: document.getElementById('tpVal'),
-      sl: document.getElementById('slVal'),
-      ema7: document.getElementById('ema7'),
-      ema21: document.getElementById('ema21'),
-      rsi: document.getElementById('rsi'),
-      stoch: document.getElementById('stoch'),
-      macd: document.getElementById('macd'),
-      sup: document.getElementById('sup'),
-      res: document.getElementById('res')
-    };
+    async function loadData() {
+      let pair = document.getElementById("pair").value;
+      const url = `https://stooq.com/q/d/l/?s=${pair}&c=1&d=1`;
 
-    const dom = {
-      pair: document.getElementById('pairSelect'),
-      tf: document.getElementById('tfSelect'),
-      refresh: document.getElementById('refreshBtn'),
-      hSlider: document.getElementById('hSlider'),
-      hVal: document.getElementById('hVal'),
-      fullBtn: document.getElementById('fullBtn'),
-      tvChart: document.getElementById('tradingview_chart'),
-      history: document.getElementById('history'),
-      clearHist: document.getElementById('clearHist')
-    };
+      try {
+        const resp = await fetch(url);
+        const csv = await resp.text();
+        const data = Papa.parse(csv, {header:true}).data
+          .filter(d => d.Date && d.Close)
+          .map(d => ({
+            date: d.Date,
+            close: parseFloat(d.Close),
+            high: parseFloat(d.High),
+            low: parseFloat(d.Low)
+          }));
 
-    // Load saved selection
-    function loadSaved() {
-      const sp = localStorage.getItem('PAIR'); const stf = localStorage.getItem('TF');
-      if (sp) [...dom.pair.options].forEach(o=>{ if(o.value===sp) o.selected=true; });
-      if (stf) [...dom.tf.options].forEach(o=>{ if(o.value===stf) o.selected=true; });
-    }
+        if(data.length < 30) {
+          document.getElementById("signal").innerHTML = "⚠️ Data tidak cukup untuk analisa.";
+          return;
+        }
 
-    // =============== TRADINGVIEW CHART ===============
-    let TV_SYMBOL = dom.pair.selectedOptions[0].dataset.tv;
-    let TV_INTERVAL = dom.tf.selectedOptions[0].dataset.tv;
-    function loadChart() {
-      TV_SYMBOL = dom.pair.selectedOptions[0].dataset.tv;
-      TV_INTERVAL = dom.tf.selectedOptions[0].dataset.tv;
-      dom.tvChart.innerHTML = "";
-      new TradingView.widget({
-        "width": "100%",
-        "height": parseInt(dom.hSlider.value),
-        "symbol": TV_SYMBOL,
-        "interval": TV_INTERVAL,
-        "timezone": "Etc/UTC",
-        "theme": "dark",
-        "style": "1",
-        "locale": "id",
-        "toolbar_bg": "#0d1117",
-        "enable_publishing": false,
-        "hide_top_toolbar": false,
-        "hide_legend": false,
-        "save_image": false,
-        "studies": [
-          "MAExp@tv-basicstudies",
-          "MASimple@tv-basicstudies"
-        ],
-        "container_id": "tradingview_chart"
-      });
-    }
+        // === indikator ===
+        function EMA(period, values) {
+          let k = 2/(period+1);
+          let emaArray = [];
+          let ema = values.slice(0, period).reduce((a,b)=>a+b,0)/period;
+          emaArray[period-1] = ema;
+          for (let i=period; i<values.length; i++) {
+            ema = values[i]*k + ema*(1-k);
+            emaArray[i] = ema;
+          }
+          return emaArray;
+        }
+        function RSI(period, values) {
+          let rsi = [];
+          for (let i=period; i<values.length; i++) {
+            let gains=0, losses=0;
+            for (let j=i-period+1;j<=i;j++){
+              let diff = values[j]-values[j-1];
+              if(diff>=0) gains+=diff; else losses-=diff;
+            }
+            let rs = gains/period / (losses/period || 1);
+            rsi[i] = 100 - (100/(1+rs));
+          }
+          return rsi;
+        }
+        function MACD(values) {
+          let ema12 = EMA(12, values);
+          let ema26 = EMA(26, values);
+          let macd = values.map((v,i)=> (ema12[i]||0) - (ema26[i]||0));
+          let signal = EMA(9, macd);
+          return {macd, signal};
+        }
+        function ATR(period, data) {
+          let atr = [];
+          for (let i=period; i<data.length; i++) {
+            let trs = [];
+            for (let j=i-period+1; j<=i; j++) {
+              let high = data[j].high, low = data[j].low, prevClose = data[j-1].close;
+              let tr = Math.max(
+                high-low,
+                Math.abs(high-prevClose),
+                Math.abs(low-prevClose)
+              );
+              trs.push(tr);
+            }
+            atr[i] = trs.reduce((a,b)=>a+b,0)/period;
+          }
+          return atr;
+        }
 
-    // =============== INDICATOR MATH ===============
-    function EMAseries(values, period){
-      const k = 2/(period+1);
-      const out = [];
-      let emaPrev = values[0];
-      for (let i=0;i<values.length;i++){
-        const price = values[i];
-        if(i===0){ out.push(price); continue; }
-        const ema = price*k + emaPrev*(1-k);
-        out.push(ema); emaPrev = ema;
-      }
-      return out;
-    }
-    function RSI(values, period=14){
-      // Wilder's smoothing
-      if(values.length < period+1) return 50;
-      let gains=0, losses=0;
-      for(let i=1;i<=period;i++){
-        const diff = values[i]-values[i-1];
-        if(diff>=0) gains += diff; else losses -= diff;
-      }
-      gains/=period; losses/=period;
-      let rs = (losses===0) ? 100 : (gains/(losses||1e-9));
-      let rsi = 100 - (100/(1+rs));
-      for(let i=period+1;i<values.length;i++){
-        const diff = values[i]-values[i-1];
-        const gain = diff>0?diff:0, loss = diff<0? -diff:0;
-        gains = (gains*(period-1)+gain)/period;
-        losses = (losses*(period-1)+loss)/period;
-        rs = (losses===0) ? 100 : (gains/(losses||1e-9));
-        rsi = 100 - (100/(1+rs));
-      }
-      return rsi;
-    }
-    function Stochastic(values, kPeriod=14){
-      const recent = values.slice(-kPeriod);
-      const high = Math.max(...recent), low = Math.min(...recent);
-      const close = values[values.length-1];
-      return (high===low)?50: ((close-low)/(high-low))*100;
-    }
-    function MACD(values, short=12, long=26, signal=9){
-      const emaS = EMAseries(values, short);
-      const emaL = EMAseries(values, long);
-      const macd = emaS.map((v,i)=> v - (emaL[i]??v));
-      const signalLine = EMAseries(macd.slice(long-1), signal); // align start
-      const macdLast = macd[macd.length-1];
-      const signalLast = signalLine[signalLine.length-1];
-      return { macdLast, signalLast };
-    }
+        const closes = data.map(d=>d.close);
+        const ema7 = EMA(7, closes);
+        const ema21 = EMA(21, closes);
+        const rsi14 = RSI(14, closes);
+        const {macd} = MACD(closes);
+        const atr14 = ATR(14, data);
 
-    // =============== FETCH & SIGNAL LOGIC ===============
-    async function fetchOHLC(symbol, interval, size=300){
-      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${size}&apikey=${API_KEY}`;
-      const res = await fetch(url);
-      const j = await res.json();
-      if(!j || !j.values) throw new Error(j.message || "No data");
-      // reverse to old->new
-      return j.values.reverse().map(v=>({
-        time: v.datetime,
-        open: +v.open, high:+v.high, low:+v.low, close:+v.close
-      }));
-    }
+        function getSignal(i) {
+          if (ema7[i] > ema21[i] && rsi14[i] > 50 && macd[i] > 0) return "BUY";
+          if (ema7[i] < ema21[i] && rsi14[i] < 50 && macd[i] < 0) return "SELL";
+          return "NEUTRAL";
+        }
 
-    function computeSignal(ohlc, symbol, interval){
-      const closes = ohlc.map(d=>d.close);
-      const ema7Arr = EMAseries(closes,7);
-      const ema21Arr = EMAseries(closes,21);
-      const ema7 = ema7Arr.at(-1), ema21 = ema21Arr.at(-1);
-      const last = closes.at(-1);
+        let i = closes.length-1;
+        let price = closes[i];
+        let lastSignal = getSignal(i);
+        let atr = atr14[i] || 0;
 
-      // SnR window
-      const win = 20;
-      const recentHigh = Math.max(...ohlc.slice(-win).map(d=>d.high));
-      const recentLow  = Math.min(...ohlc.slice(-win).map(d=>d.low));
+        let TP = null, SL = null;
+        if (lastSignal === "BUY") {
+          TP = price + 2*atr;
+          SL = price - 1*atr;
+        } else if (lastSignal === "SELL") {
+          TP = price - 2*atr;
+          SL = price + 1*atr;
+        }
 
-      const rsi = RSI(closes,14);
-      const stoch = Stochastic(closes,14);
-      const { macdLast, signalLast } = MACD(closes);
+        let wins = 0, total = 0;
+        for (let j = closes.length-55; j < closes.length-3; j++) {
+          let sig = getSignal(j);
+          if(sig==="BUY" || sig==="SELL") {
+            total++;
+            if(sig==="BUY" && closes[j+3] > closes[j]) wins++;
+            if(sig==="SELL" && closes[j+3] < closes[j]) wins++;
+          }
+        }
+        let accuracy = total>0 ? (wins/total*100).toFixed(1) : "0";
 
-      // Core rules
-      const bull = (ema7 > ema21) && (last > recentLow) && (rsi < 70) && (stoch < 80) && (macdLast > signalLast);
-      const bear = (ema7 < ema21) && (last < recentHigh) && (rsi > 30) && (stoch > 20) && (macdLast < signalLast);
+        document.getElementById("signal").innerHTML = `
+          <h2>${pair.toUpperCase()} → <span class="${lastSignal.toLowerCase()}">${lastSignal}</span></h2>
+          <p>📈 Harga terakhir: <b>${price.toFixed(2)}</b></p>
+          <p>✅ Akurasi Backtest (50 candle): <b>${accuracy}%</b></p>
+          <p>📊 Total sinyal diuji: ${total}, Win: ${wins}</p>
+          ${TP && SL ? `
+            <p>🎯 Target Profit: <b>${TP.toFixed(2)}</b></p>
+            <p>🛑 Stop Loss: <b>${SL.toFixed(2)}</b></p>
+            <p>⚖️ Rasio Risk/Reward: 1:2</p>
+          ` : ""}
+        `;
 
-      // Confidence scoring
-      let score = 70; // base (MA + SnR)
-      if ((rsi < 60 && rsi > 40) || (stoch > 20 && stoch < 80)) score += 5; // neutral-good momentum
-      if ((macdLast>signalLast && ema7>ema21) || (macdLast<signalLast && ema7<ema21)) score += 10; // MACD confirm
-      if (Math.abs(last-ema7)/last < 0.003) score += 3; // price hugging ema
-      if (Math.abs(last-recentLow)/last < 0.002 || Math.abs(last-recentHigh)/last < 0.002) score += 2; // near SnR
-
-      score = Math.min(90, Math.max(55, Math.round(score)));
-
-      let title, color;
-      let tp, sl, entry = last;
-
-      if (bull){
-        const dist = Math.max( (last - recentLow), (ema7 - ema21) );
-        tp = last + dist * 0.5;     // 2:1 approx built into dist
-        sl = last - dist * 0.25;
-        title = `🚀 BUY ${symbol} • ${last.toFixed(4)}`;
-        color = 'text-green-400';
-      } else if (bear){
-        const dist = Math.max( (recentHigh - last), (ema21 - ema7) );
-        tp = last - dist * 0.5;
-        sl = last + dist * 0.25;
-        title = `🔻 SELL ${symbol} • ${last.toFixed(4)}`;
-        color = 'text-red-400';
-      } else {
-        tp = sl = NaN;
-        title = `⚠️ Sideways / Tunggu Konfirmasi • ${last.toFixed(4)}`;
-        color = 'text-yellow-400';
-      }
-
-      return {
-        title, color, entry, tp, sl, score,
-        meta: `📌 Pair: ${symbol} | TF: ${interval}`,
-        ema7, ema21, rsi, stoch, macdStr: `${macdLast.toFixed(3)} / ${signalLast.toFixed(3)}`,
-        sup: recentLow, res: recentHigh
-      };
-    }
-
-    function setSignalUI(sig){
-      signalBox.title.className = `text-2xl font-extrabold ${sig.color}`;
-      signalBox.title.innerHTML = sig.title;
-      signalBox.meta.textContent = sig.meta;
-      signalBox.acc.textContent = `Akurasi Teori: ${sig.score}%`;
-      signalBox.time.textContent = `Update: ${new Date().toLocaleTimeString()}`;
-
-      signalBox.entry.textContent = isFinite(sig.entry) ? formatNum(sig.entry) : '—';
-      signalBox.tp.textContent    = isFinite(sig.tp) ? formatNum(sig.tp) : '—';
-      signalBox.sl.textContent    = isFinite(sig.sl) ? formatNum(sig.sl) : '—';
-
-      signalBox.ema7.textContent  = formatNum(sig.ema7);
-      signalBox.ema21.textContent = formatNum(sig.ema21);
-      signalBox.rsi.textContent   = `${sig.rsi.toFixed(1)}`;
-      signalBox.stoch.textContent = `${sig.stoch.toFixed(1)}`;
-      signalBox.macd.textContent  = sig.macdStr;
-      signalBox.sup.textContent   = formatNum(sig.sup);
-      signalBox.res.textContent   = formatNum(sig.res);
-    }
-
-    function formatNum(n){
-      if(!isFinite(n)) return '—';
-      if (Math.abs(n) >= 1000) return n.toFixed(2);
-      return n.toFixed(4);
-    }
-
-    // =============== HISTORY ===============
-    function pushHistory(sig){
-      const key = 'SIG_HISTORY';
-      const item = {
-        t: Date.now(),
-        title: sig.title.replace(/<[^>]*>?/gm, ''),
-        entry: sig.entry, tp: sig.tp, sl: sig.sl, score: sig.score
-      };
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      arr.unshift(item);
-      localStorage.setItem(key, JSON.stringify(arr.slice(0,10)));
-      renderHistory();
-    }
-
-    function renderHistory(){
-      const arr = JSON.parse(localStorage.getItem('SIG_HISTORY') || '[]');
-      dom.history.innerHTML = arr.map(i=>{
-        const dt = new Date(i.t);
-        return `<div class="flex items-center justify-between bg-gray-900/60 border border-gray-800 rounded-lg px-3 py-2">
-          <div class="text-xs">${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}</div>
-          <div class="text-sm font-semibold">${i.title}</div>
-          <div class="text-xs text-gray-400">Entry ${formatNum(i.entry)} | TP ${formatNum(i.tp)} | SL ${formatNum(i.sl)} | Acc ${i.score}%</div>
-        </div>`;
-      }).join('') || `<div class="text-gray-500 text-sm">Belum ada riwayat.</div>`;
-    }
-
-    dom.clearHist.addEventListener('click', ()=>{
-      localStorage.removeItem('SIG_HISTORY');
-      renderHistory();
-    });
-
-    // =============== MAIN FLOW ===============
-    async function runSignal(){
-      const symbol = dom.pair.value;            // e.g. "XAU/USD" (TwelveData)
-      const interval = dom.tf.value;            // e.g. "60min"
-      try{
-        const ohlc = await fetchOHLC(symbol, interval, 300);
-        const sig = computeSignal(ohlc, symbol, interval);
-        setSignalUI(sig);
-        if(!/Sideways/.test(sig.title)) pushHistory(sig);
-      }catch(e){
-        setSignalUI({
-          title:`❌ Gagal ambil data (${e.message || 'Error'})`, color:'text-red-400',
-          entry:NaN,tp:NaN,sl:NaN,score:0,meta:`📌 Pair: ${symbol} | TF: ${interval}`,
-          ema7:NaN,ema21:NaN,rsi:NaN,stoch:NaN,macdStr:'—',sup:NaN,res:NaN
-        });
+        // === TradingView Chart Embed ===
+        const tvSymbol = pair.toUpperCase()+"USD";
+        document.getElementById("chart").innerHTML = `
+          <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_${pair}&symbol=${tvSymbol}&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=rgba(0,0,0,1)&studies=[]&theme=dark&style=1&timezone=Etc/UTC"
+          allowfullscreen></iframe>
+        `;
+      } catch (e) {
+        document.getElementById("signal").innerHTML = "❌ Gagal mengambil data.";
       }
     }
 
-    // =============== EVENTS & UI CONTROLS ===============
-    dom.pair.addEventListener('change', ()=>{
-      localStorage.setItem('PAIR', dom.pair.value);
-      loadChart(); runSignal();
-    });
-    dom.tf.addEventListener('change', ()=>{
-      localStorage.setItem('TF', dom.tf.value);
-      loadChart(); runSignal();
-    });
-    dom.refresh.addEventListener('click', runSignal);
-
-    dom.hSlider.addEventListener('input', (e)=>{
-      const h = parseInt(e.target.value,10);
-      dom.hVal.textContent = h;
-      dom.tvChart.style.height = h+'px';
-      // reload chart to apply height
-      loadChart();
-    });
-
-    dom.fullBtn.addEventListener('click', ()=>{
-      const wrap = document.getElementById('tvWrap');
-      if(!document.fullscreenElement){
-        wrap.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
-    });
-
-    // =============== INIT ===============
-    (function init(){
-      loadSaved();
-      renderHistory();
-      loadChart();
-      runSignal();
-      // auto refresh tiap 60 detik
-      setInterval(runSignal, 60*1000);
-    })();
+    loadData();
   </script>
 </body>
 </html>
