@@ -2,36 +2,35 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Forex SnR + Indicator Realtime Signals</title>
+  <title>Forex & Gold SnR Realtime Signals</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { color-scheme: dark; }
-    body{margin:0;background:#0d0d0d;color:#e8e8e8;font-family:Inter,Arial,system-ui,-apple-system;}
-    header{padding:16px 20px;border-bottom:1px solid #222;}
-    h1{font-size:20px;margin:0}
-    .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #222}
-    select,button{background:#151515;color:#fff;border:1px solid #333;border-radius:8px;padding:8px 10px;font-size:14px}
+    :root{color-scheme:dark}
+    body{margin:0;background:#0e0e0f;color:#f2f2f2;font-family:Inter,Arial,system-ui}
+    header{padding:16px 20px;border-bottom:1px solid #222}
+    h1{margin:0;font-size:20px}
+    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #222}
+    select,button{background:#161617;color:#fff;border:1px solid #2d2d2f;border-radius:8px;padding:8px 10px;font-size:14px}
     button{cursor:pointer}
-    .chart-wrap{padding:0 20px 16px}
-    .chart{width:100%;height:64vh;border:1px solid #222;border-radius:12px;overflow:hidden}
-    .sizes{display:flex;gap:8px;padding:0 20px 16px}
-    .small{height:300px!important}.medium{height:60vh!important}.large{height:80vh!important}.fullscreen{height:92vh!important}
-    #signalBox{margin:0 20px 30px;border:1px solid #222;border-radius:12px;padding:16px}
-    table{border-collapse:collapse;width:100%;max-width:820px;margin-top:10px}
-    th,td{border:1px solid #333;padding:8px 10px;text-align:center}
+    .wrap{padding:16px 20px}
+    .chart-card{border:1px solid #222;border-radius:12px;padding:10px}
+    .chart{width:100%;height:62vh}
+    .sizes{display:flex;gap:8px;margin:10px 0}
+    .small{height:300px!important}.medium{height:62vh!important}.large{height:78vh!important}.fullscreen{height:92vh!important}
+    #signalBox{margin-top:16px;border:1px solid #222;border-radius:12px;padding:14px}
+    table{border-collapse:collapse;width:100%;max-width:880px;margin-top:10px}
+    th,td{border:1px solid #303033;padding:8px 10px;text-align:center}
     .bullish{background:#1b6e3a;color:#fff;font-weight:700}
     .bearish{background:#b83232;color:#fff;font-weight:700}
     .neutral{background:#c7a600;color:#000;font-weight:700}
-    .note{opacity:.8;font-size:12px;margin-top:10px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;max-width:820px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:880px;margin-top:10px}
     .card{border:1px solid #222;border-radius:10px;padding:10px}
     .muted{opacity:.75}
-    a{color:#70b6ff}
+    .note{opacity:.8;font-size:12px;margin-top:10px}
   </style>
 </head>
 <body>
-  <header>
-    <h1>📈 Forex SnR + Indicator Realtime Signals</h1>
-  </header>
+  <header><h1>📈 Forex & Gold SnR Realtime Signals</h1></header>
 
   <div class="bar">
     <label>Pair
@@ -40,8 +39,6 @@
         <option value="GBPUSD">GBPUSD (Forex)</option>
         <option value="USDJPY">USDJPY (Forex)</option>
         <option value="XAUUSD">XAUUSD (Gold)</option>
-        <option value="BTCUSD">BTCUSD (Crypto)</option>
-        <option value="ETHUSD">ETHUSD (Crypto)</option>
       </select>
     </label>
     <label>Timeframe
@@ -51,259 +48,260 @@
         <option value="15min">M15</option>
         <option value="30min">M30</option>
         <option value="60min">H1</option>
-        <option value="daily">D1</option>
+        <option value="1day">D1</option>
       </select>
     </label>
-    <button id="btnFetch">Ambil/Refresh Data</button>
+    <button id="btnFetch">🔄 Ambil/Refresh</button>
   </div>
 
-  <div class="chart-wrap">
-    <iframe id="tvchart" class="chart medium" frameborder="0"></iframe>
-  </div>
+  <div class="wrap">
+    <div class="chart-card">
+      <canvas id="chart" class="chart medium"></canvas>
+      <div class="sizes">
+        <button onclick="resizeChart('small')">Kecil</button>
+        <button onclick="resizeChart('medium')">Sedang</button>
+        <button onclick="resizeChart('large')">Besar</button>
+        <button onclick="resizeChart('fullscreen')">Fullscreen</button>
+      </div>
+    </div>
 
-  <div class="sizes">
-    <button onclick="resizeChart('small')">Kecil</button>
-    <button onclick="resizeChart('medium')">Sedang</button>
-    <button onclick="resizeChart('large')">Besar</button>
-    <button onclick="resizeChart('fullscreen')">Fullscreen</button>
-  </div>
-
-  <div id="signalBox">
-    <h3>📊 Sinyal Terbaru</h3>
-    <div id="signalResult" class="muted">Menunggu data…</div>
+    <div id="signalBox">
+      <h3>📊 Sinyal Terbaru</h3>
+      <div id="signalResult" class="muted">Menunggu data…</div>
+    </div>
   </div>
 
 <script>
-const ALPHA_KEY = "IOP9EDHO1ARXGFMN"; // API key kamu
+/* ====== API KEYS ====== */
+const ALPHA_KEY  = "IOP9EDHO1ARXGFMN";                      // Alpha Vantage
+const TWELVE_KEY = "40192b2b-9b48-4695-b721-102a0074a722";   // TwelveData
 
-// ---- Utils & mapping ----
-function tvSymbol(pair){
-  if(pair==="XAUUSD") return "OANDA:XAUUSD";
-  if(pair==="BTCUSD") return "BINANCE:BTCUSDT";
-  if(pair==="ETHUSD") return "BINANCE:ETHUSDT";
-  return `FX:${pair}`; // forex
-}
-function tvInterval(tf){
-  // TradingView expects 1,5,15,30,60,D
-  const map={ "1min":"1","5min":"5","15min":"15","30min":"30","60min":"60","daily":"D" };
-  return map[tf]||"15";
-}
-function timeframeMinutes(tf){
-  return tf==="daily"? 24*60 : parseInt(tf); // 1min,5min,… to minutes
-}
-function fmt(n, d=5){ if(n==null||isNaN(n)) return "-"; return (+n).toFixed(d); }
+/* ====== Helpers ====== */
+let chart;
+const fmt = (n,d=5)=> (n==null||isNaN(n))?"-":(+n).toFixed(d);
+const tfToMinutes = tf => tf==="1day" ? 1440 : parseInt(tf);
 
-// ---- Indicators ----
+/* Indicators */
 function SMA(arr, p){
   const out=[];
   for(let i=0;i<=arr.length-p;i++){
-    let s=0; for(let j=0;j<p;j++) s+=arr[i+j];
+    let s=0; for(let j=0;j<p;j++) s += arr[i+j];
     out.push(s/p);
   }
   return out;
 }
-function EMA(arr, p){
-  const k=2/(p+1), out=[arr[0]];
-  for(let i=1;i<arr.length;i++) out[i]=arr[i]*k + out[i-1]*(1-k);
+function EMA(arr,p){
+  const k=2/(p+1); const out=[arr[0]];
+  for(let i=1;i<arr.length;i++) out[i] = arr[i]*k + out[i-1]*(1-k);
   return out;
 }
 function RSI(closes, period=14){
   if(closes.length<period+1) return null;
   let gains=0, losses=0;
   for(let i=1;i<=period;i++){
-    const diff=closes[i]-closes[i-1];
-    if(diff>=0) gains+=diff; else losses-=diff;
+    const d = closes[i]-closes[i-1];
+    if(d>=0) gains += d; else losses -= d;
   }
-  let avgGain=gains/period, avgLoss=losses/period;
+  let avgG=gains/period, avgL=losses/period;
   for(let i=period+1;i<closes.length;i++){
-    const diff=closes[i]-closes[i-1];
-    avgGain = (avgGain*(period-1) + (diff>0?diff:0))/period;
-    avgLoss = (avgLoss*(period-1) + (diff<0?-diff:0))/period;
+    const d=closes[i]-closes[i-1];
+    avgG=(avgG*(period-1)+(d>0?d:0))/period;
+    avgL=(avgL*(period-1)+(d<0?-d:0))/period;
   }
-  if(avgLoss===0) return 100;
-  const rs=avgGain/avgLoss;
-  return 100 - (100/(1+rs));
+  if(avgL===0) return 100;
+  return 100 - (100/(1+avgG/avgL));
 }
 function MACD(closes){
-  if(closes.length<35) return {macd:null, signal:null, hist:null};
+  if(closes.length<35) return {macd:null,signal:null,hist:null};
   const ema12=EMA(closes,12), ema26=EMA(closes,26);
-  const macdLine=ema12.map((v,i)=>v-(ema26[i]??v));
-  // align lengths
-  const start = Math.max(ema12.length, ema26.length) - macdLine.length;
-  const sliced = macdLine.slice(start);
-  const signal = EMA(sliced,9);
-  const hist = sliced.map((v,i)=> v - (signal[i]??v));
-  return { macd: sliced, signal, hist };
+  const macd = ema12.map((v,i)=>v-(ema26[i]??v));
+  const signal = EMA(macd.slice(ema26.length-ema12.length),9);
+  const hist = macd.slice(-signal.length).map((v,i)=>v-signal[i]);
+  return {macd: macd.slice(-signal.length), signal, hist};
 }
-// Simple SnR: nearest support below & resistance above within N bars
-function findSnR(highs,lows, price, lookback=50){
-  const h = highs.slice(-lookback), l = lows.slice(-lookback);
-  let resAbove = Math.min(...h.filter(x=>x>price));
-  let supBelow = Math.max(...l.filter(x=>x<price));
-  if(!isFinite(resAbove)) resAbove = Math.max(...h); // fallback
-  if(!isFinite(supBelow)) supBelow = Math.min(...l); // fallback
-  return { support: supBelow, resistance: resAbove };
+function findSnR(highs,lows, price, lookback=80){
+  const h=highs.slice(-lookback), l=lows.slice(-lookback);
+  let res = Math.min(...h.filter(x=>x>price));
+  let sup = Math.max(...l.filter(x=>x<price));
+  if(!isFinite(res)) res = Math.max(...h);
+  if(!isFinite(sup)) sup = Math.min(...l);
+  return {support:sup,resistance:res};
 }
 
-// ---- Fetch & build signal ----
-async function fetchAndAnalyze(){
-  const pair = document.getElementById("pair").value;
-  const tf = document.getElementById("timeframe").value;
-
-  // Update chart
-  const sym = tvSymbol(pair);
-  const interval = tvInterval(tf);
-  document.getElementById("tvchart").src =
-    `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(interval)}&theme=dark&hide_legend=false&hide_side_toolbar=false&withdateranges=1`;
-
-  let html = "";
+/* ====== Data Fetch ====== */
+// Returns rows: [{time, open, high, low, close}]
+async function fetchSeries(pair, tf){
   try{
     if(pair==="XAUUSD"){
-      // Alpha Vantage only provides realtime rate for XAUUSD here
-      const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=XAU&to_currency=USD&apikey=${ALPHA_KEY}`;
-      const res = await fetch(url); const data = await res.json();
-      const rate = data && data["Realtime Currency Exchange Rate"] ? parseFloat(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]) : null;
-      if(!rate){ document.getElementById("signalResult").innerHTML="Gagal ambil data XAUUSD."; return; }
-      html = `
-        <div class="grid">
-          <div class="card"><b>Pair</b><br>${pair}</div>
-          <div class="card"><b>Harga Sekarang</b><br>${fmt(rate,2)}</div>
-        </div>
-        <div class="note">Catatan: Alpha Vantage tidak menyediakan OHLC intraday untuk XAUUSD, jadi MA/RSI/MACD & SnR tidak dapat dihitung dari API ini.</div>
-      `;
-      document.getElementById("signalResult").innerHTML = html;
-      return;
-    }
-
-    // FOREX or CRYPTO series
-    let closes=[], highs=[], lows=[], open= null, lastClose=null;
-    if(pair.endsWith("USD") && !["BTCUSD","ETHUSD"].includes(pair)){
-      // FOREX intraday
-      const url = `https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol=${pair.slice(0,3)}&to_symbol=${pair.slice(3,6)}&interval=${tf}&outputsize=compact&apikey=${ALPHA_KEY}`;
-      const res = await fetch(url); const data = await res.json();
-      const key = Object.keys(data).find(k=>k.includes("Time Series FX"));
-      if(!key){ document.getElementById("signalResult").innerText="Gagal ambil data Forex."; return; }
-      const series = data[key]; // newest first keys
-      const rows = Object.entries(series).map(([t,v])=>({
-        time:t, open:+v["1. open"], high:+v["2. high"], low:+v["3. low"], close:+v["4. close"]
-      })).reverse(); // oldest -> newest
-      closes = rows.map(r=>r.close); highs = rows.map(r=>r.high); lows = rows.map(r=>r.low);
-      open = rows.at(-1).open; lastClose = rows.at(-1).close;
+      // TwelveData
+      const interval = tf==="1day" ? "1day" : tf; // same names
+      const url = `https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=${interval}&outputsize=500&apikey=${TWELVE_KEY}`;
+      const r = await fetch(url); const j = await r.json();
+      if(!j.values) throw new Error("TwelveData: no values");
+      return j.values.reverse().map(v=>({
+        time:v.datetime, open:+v.open, high:+v.high, low:+v.low, close:+v.close
+      }));
     }else{
-      // CRYPTO daily (Alpha provides daily reliably)
-      const symbol = pair.replace("USD","");
-      const url = `https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol=${symbol}&market=USD&apikey=${ALPHA_KEY}`;
-      const res = await fetch(url); const data = await res.json();
-      const key = "Time Series (Digital Currency Daily)";
-      if(!data[key]){ document.getElementById("signalResult").innerText="Gagal ambil data Crypto."; return; }
-      const rows = Object.entries(data[key]).map(([t,v])=>({
-        time:t, open:+v["1a. open (USD)"], high:+v["2a. high (USD)"], low:+v["3a. low (USD)"], close:+v["4a. close (USD)"]
-      })).reverse();
-      closes = rows.map(r=>r.close); highs = rows.map(r=>r.high); lows = rows.map(r=>r.low);
-      open = rows.at(-1).open; lastClose = rows.at(-1).close;
+      // Alpha Vantage (Forex)
+      if(tf==="1day"){
+        const url = `https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=${pair.slice(0,3)}&to_symbol=${pair.slice(3)}&outputsize=compact&apikey=${ALPHA_KEY}`;
+        const r = await fetch(url); const j = await r.json();
+        const key = "Time Series FX (Daily)";
+        if(!j[key]) throw new Error("Alpha: no FX_DAILY");
+        return Object.entries(j[key]).reverse().map(([t,v])=>({
+          time:t, open:+v["1. open"], high:+v["2. high"], low:+v["3. low"], close:+v["4. close"]
+        }));
+      }else{
+        const url = `https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol=${pair.slice(0,3)}&to_symbol=${pair.slice(3)}&interval=${tf}&outputsize=compact&apikey=${ALPHA_KEY}`;
+        const r = await fetch(url); const j = await r.json();
+        const key = Object.keys(j).find(k=>k.includes("Time Series FX"));
+        if(!key) throw new Error("Alpha: no FX_INTRADAY");
+        return Object.entries(j[key]).reverse().map(([t,v])=>({
+          time:t, open:+v["1. open"], high:+v["2. high"], low:+v["3. low"], close:+v["4. close"]
+        }));
+      }
     }
-
-    if(closes.length<60){ document.getElementById("signalResult").innerText="Data kurang untuk hitung indikator."; return; }
-
-    // Indicators
-    const sma20 = SMA(closes,20), sma50 = SMA(closes,50);
-    const rsi = RSI(closes);
-    const {macd, signal: macdSig} = MACD(closes);
-    const lastMA20 = sma20.at(-1), lastMA50 = sma50.at(-1);
-    const lastMACD = macd?.at(-1), lastMACDSig = macdSig?.at(-1);
-
-    // SnR
-    const price = lastClose;
-    const snr = findSnR(highs,lows, price, 60);
-
-    // Decision rules
-    let maState = (lastMA20>lastMA50) ? "Bullish" : "Bearish";
-    let rsiState = rsi<30 ? "Oversold (Bullish)" : (rsi>70 ? "Overbought (Bearish)" : "Normal");
-    let macdState = (lastMACD>lastMACDSig) ? "Bullish" : "Bearish";
-
-    let final = "WAIT ⏳", finalClass="neutral";
-    let sl=null, tp=null, rr="2:1", hold="—";
-
-    if(maState==="Bullish" && rsi<70 && lastMACD>lastMACDSig){
-      final="BUY 📈"; finalClass="bullish";
-      sl = Math.min(price, snr.support);
-      const risk = Math.max( (price - sl), 0.0001 );
-      tp = price + (2*risk); // RR 2:1
-    }else if(maState==="Bearish" && rsi>30 && lastMACD<lastMACDSig){
-      final="SELL 📉"; finalClass="bearish";
-      sl = Math.max(price, snr.resistance);
-      const risk = Math.max( (sl - price), 0.0001 );
-      tp = price - (2*risk);
-    }
-
-    // Estimasi lama hold (heuristik: 8–15 bar menuju TP)
-    if(final!=="WAIT ⏳"){
-      const barsToTP = 12; // midpoint
-      const minutes = timeframeMinutes(document.getElementById("timeframe").value) * barsToTP;
-      if(minutes>=24*60) hold = `${Math.round(minutes/(24*60))} hari`;
-      else if(minutes>=60) hold = `${Math.round(minutes/60)} jam`;
-      else hold = `${minutes} menit`;
-    }
-
-    // Render
-    const maCell = `<td class="${maState==='Bullish'?'bullish':'bearish'}">${maState} (SMA20 ${fmt(lastMA20,5)} vs SMA50 ${fmt(lastMA50,5)})</td>`;
-    const rsiClass = rsi<30?'bullish':(rsi>70?'bearish':'neutral');
-    const macdClass = macdState==='Bullish'?'bullish':'bearish';
-
-    const table = `
-      <table>
-        <tr><th>Indikator</th><th>Status</th></tr>
-        <tr><td>MA Cross</td>${maCell}</tr>
-        <tr><td>RSI (14)</td><td class="${rsiClass}">${rsiState} (${Math.round(rsi)})</td></tr>
-        <tr><td>MACD (12,26,9)</td><td class="${macdClass}">${macdState} (MACD ${fmt(lastMACD,5)} / Signal ${fmt(lastMACDSig,5)})</td></tr>
-        <tr><td><b>Final Signal</b></td><td class="${finalClass}"><b>${final}</b></td></tr>
-      </table>`;
-
-    const meta = `
-      <div class="grid">
-        <div class="card"><b>Pair</b><br>${pair}</div>
-        <div class="card"><b>Timeframe</b><br>${document.getElementById("timeframe").value}</div>
-        <div class="card"><b>Harga</b><br>${fmt(price,5)}</div>
-        <div class="card"><b>Open</b><br>${fmt(open,5)}</div>
-      </div>
-      <div class="grid" style="margin-top:10px">
-        <div class="card"><b>Support</b><br>${fmt(snr.support,5)}</div>
-        <div class="card"><b>Resistance</b><br>${fmt(snr.resistance,5)}</div>
-        <div class="card"><b>Stop Loss</b><br>${sl?fmt(sl,5):"—"}</div>
-        <div class="card"><b>Take Profit (RR 2:1)</b><br>${tp?fmt(tp,5):"—"}</div>
-      </div>
-      <div class="grid" style="margin-top:10px">
-        <div class="card"><b>Estimasi Lama Hold</b><br>${hold}</div>
-        <div class="card"><b>Perkiraan Akurasi (Teori)</b><br>≈85–90% (MA+RSI+MACD+SnR)</div>
-      </div>
-      <div class="note">
-        • SnR dihitung dari high/low 60 candle terakhir (nearest level).<br>
-        • TP/SL berdasarkan RR 2:1 terhadap level SnR terdekat berlawanan arah sinyal.<br>
-        • Ini bukan jaminan hasil; tetap gunakan money management & hindari news berdampak besar.
-      </div>`;
-
-    document.getElementById("signalResult").innerHTML = table + meta;
-
-  }catch(err){
-    console.error(err);
-    document.getElementById("signalResult").innerText = "⚠️ Gagal ambil data.";
+  }catch(e){
+    console.error(e);
+    return null;
   }
 }
 
-// ---- UI handlers ----
+/* ====== Analysis + UI ====== */
+function drawChart(symbol, rows){
+  const ctx = document.getElementById("chart").getContext("2d");
+  const labels = rows.map(r=>r.time);
+  const closes = rows.map(r=>r.close);
+
+  // Moving averages for overlay
+  const sma20 = SMA(closes,20); const pad20 = new Array(closes.length-sma20.length).fill(null);
+  const sma50 = SMA(closes,50); const pad50 = new Array(closes.length-sma50.length).fill(null);
+
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:`${symbol} Close`, data:closes, borderWidth:2, fill:false},
+        {label:'SMA20', data:[...pad20,...sma20], borderWidth:1.8, fill:false},
+        {label:'SMA50', data:[...pad50,...sma50], borderWidth:1.8, fill:false}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ boxWidth:12 } } },
+      interaction:{ mode:'index', intersect:false },
+      elements:{ point:{ radius:0 } },
+      scales:{ x:{ ticks:{ maxTicksLimit:10 } } }
+    }
+  });
+}
+
+async function run(){
+  const pair = document.getElementById("pair").value;
+  const tf   = document.getElementById("timeframe").value;
+
+  document.getElementById("signalResult").innerHTML = "⏳ Mengambil data…";
+
+  const rows = await fetchSeries(pair, tf);
+  if(!rows || rows.length<60){
+    document.getElementById("signalResult").innerHTML = "❌ Gagal ambil data atau data kurang.";
+    return;
+  }
+
+  drawChart(pair, rows);
+
+  const closes = rows.map(r=>r.close);
+  const highs  = rows.map(r=>r.high);
+  const lows   = rows.map(r=>r.low);
+
+  const sma20 = SMA(closes,20);
+  const sma50 = SMA(closes,50);
+  const lastMA20 = sma20.at(-1), lastMA50 = sma50.at(-1);
+
+  const rsi = RSI(closes);
+  const {macd,signal:macdSig} = MACD(closes);
+  const lastMACD = macd?.at(-1), lastMACDSig = macdSig?.at(-1);
+
+  const price = closes.at(-1);
+  const snr = findSnR(highs,lows, price, 80);
+
+  // Rules: MA cross + RSI filter + MACD confirm
+  const maState   = (lastMA20>lastMA50) ? "Bullish" : "Bearish";
+  const rsiState  = rsi<30 ? "Oversold (Bullish)" : (rsi>70 ? "Overbought (Bearish)" : "Normal");
+  const macdState = (lastMACD>lastMACDSig) ? "Bullish" : "Bearish";
+
+  let final="WAIT ⏳", fClass="neutral", sl=null, tp=null;
+  if(maState==="Bullish" && rsi<70 && lastMACD>lastMACDSig){
+    final="BUY 📈"; fClass="bullish";
+    sl = Math.min(price, snr.support);
+    const risk = Math.max(price - sl, 1e-6);
+    tp = price + 2*risk; // RR 2:1
+  }else if(maState==="Bearish" && rsi>30 && lastMACD<lastMACDSig){
+    final="SELL 📉"; fClass="bearish";
+    sl = Math.max(price, snr.resistance);
+    const risk = Math.max(sl - price, 1e-6);
+    tp = price - 2*risk;
+  }
+
+  // Estimasi lama hold ~ 8–15 bar ⇒ pakai 12 bar
+  let hold="—";
+  if(final!=="WAIT ⏳"){
+    const mins = tfToMinutes(tf)*12;
+    hold = mins>=1440 ? `${Math.round(mins/1440)} hari` :
+           mins>=60   ? `${Math.round(mins/60)} jam` :
+                        `${mins} menit`;
+  }
+
+  const maCell = `<td class="${maState==='Bullish'?'bullish':'bearish'}">${maState} (SMA20 ${fmt(lastMA20)} vs SMA50 ${fmt(lastMA50)})</td>`;
+  const rsiClass = rsi<30?'bullish':(rsi>70?'bearish':'neutral');
+  const macdClass = macdState==='Bullish'?'bullish':'bearish';
+
+  const table = `
+    <table>
+      <tr><th>Indikator</th><th>Status</th></tr>
+      <tr><td>MA Cross</td>${maCell}</tr>
+      <tr><td>RSI (14)</td><td class="${rsiClass}">${rsiState} (${Math.round(rsi)})</td></tr>
+      <tr><td>MACD (12,26,9)</td><td class="${macdClass}">${macdState} (MACD ${fmt(lastMACD)} / Signal ${fmt(lastMACDSig)})</td></tr>
+      <tr><td><b>Final Signal</b></td><td class="${fClass}"><b>${final}</b></td></tr>
+    </table>`;
+
+  const meta = `
+    <div class="grid">
+      <div class="card"><b>Pair</b><br>${pair}</div>
+      <div class="card"><b>Timeframe</b><br>${tf}</div>
+      <div class="card"><b>Harga</b><br>${fmt(price)}</div>
+      <div class="card"><b>Support</b><br>${fmt(snr.support)}</div>
+      <div class="card"><b>Resistance</b><br>${fmt(snr.resistance)}</div>
+      <div class="card"><b>Stop Loss</b><br>${sl?fmt(sl):"—"}</div>
+      <div class="card"><b>Take Profit (RR 2:1)</b><br>${tp?fmt(tp):"—"}</div>
+      <div class="card"><b>Estimasi Hold</b><br>${hold}</div>
+      <div class="card"><b>Akurasi Teori</b><br>≈85–90% (MA+RSI+MACD+SnR)</div>
+    </div>
+    <div class="note">
+      • SnR dihitung dari high/low 80 candle terakhir (level terdekat).<br>
+      • TP/SL dihitung otomatis dengan rasio 2:1 dari jarak ke level lawan arah.<br>
+      • Sinyal bukan jaminan; gunakan MM dan hindari rilis berita berdampak besar.
+    </div>`;
+
+  document.getElementById("signalResult").innerHTML = table + meta;
+}
+
+/* ====== UI ====== */
 function resizeChart(size){
-  const el = document.getElementById("tvchart");
-  el.classList.remove("small","medium","large","fullscreen");
-  el.classList.add(size);
+  const c = document.getElementById("chart");
+  c.classList.remove("small","medium","large","fullscreen");
+  c.classList.add(size);
   localStorage.setItem("chartSize", size);
 }
-document.getElementById("btnFetch").addEventListener("click", fetchAndAnalyze);
-document.getElementById("pair").addEventListener("change", fetchAndAnalyze);
-document.getElementById("timeframe").addEventListener("change", fetchAndAnalyze);
+document.getElementById("btnFetch").addEventListener("click", run);
+document.getElementById("pair").addEventListener("change", run);
+document.getElementById("timeframe").addEventListener("change", run);
 
 window.addEventListener("load", ()=>{
   resizeChart(localStorage.getItem("chartSize") || "medium");
-  fetchAndAnalyze();
+  run();
 });
 </script>
 </body>
