@@ -1,219 +1,255 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>SnR Signal Pro - Multi Pair</title>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SnR Signal Pro — TradingView (No API)</title>
+  <link rel="preconnect" href="https://s3.tradingview.com">
   <style>
-    body { 
-      background:#0f172a; 
-      color:#f8fafc; 
-      font-family:'Segoe UI', Tahoma, sans-serif; 
-      margin:0; 
-      padding:0;
+    :root{
+      --bg:#0b1221; --panel:#0f172a; --card:#121a2b; --line:#1f2a44;
+      --text:#e6edf6; --muted:#93a4c3; --accent:#22c55e; --accent2:#38bdf8;
     }
-    header {
-      background:#1e293b; 
-      padding:20px; 
-      text-align:center;
-      box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial}
+    header{
+      position:sticky; top:0; z-index:10;
+      background:linear-gradient(180deg,#0b1221 0%,#0b1221cc 100%);
+      border-bottom:1px solid var(--line);
     }
-    h1 {
-      margin:0;
-      color:#38bdf8;
-      font-size:28px;
-      letter-spacing:1px;
+    .wrap{max-width:1300px;margin:0 auto;padding:16px}
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:12px;background:#22c55e22;display:grid;place-items:center}
+    h1{font-size:20px;margin:0;color:var(--accent2)}
+    .muted{color:var(--muted)}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-left:auto}
+    select,button{
+      background:var(--panel);color:var(--text);
+      border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px
     }
-    main { padding:20px; max-width:1200px; margin:auto; }
-    .controls {
-      margin-bottom:20px; 
-      display:flex; 
-      gap:10px; 
-      align-items:center;
-    }
-    select {
-      padding:10px 14px; 
-      border-radius:10px; 
-      border:none; 
-      font-size:16px;
-      background:#334155; 
-      color:#f8fafc;
-    }
-    .card {
-      background:#1e293b; 
-      padding:20px; 
-      border-radius:14px; 
-      margin-top:20px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.6);
-    }
-    h2 { margin-top:0; }
-    .buy { color:#22c55e; font-weight:bold; }
-    .sell { color:#ef4444; font-weight:bold; }
-    .neutral { color:#eab308; font-weight:bold; }
-    iframe {
-      width:100%; 
-      height:500px; 
-      border:none; 
-      border-radius:14px; 
-      margin-top:20px;
-    }
+    main{padding:18px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:1000px){.grid{grid-template-columns:1.35fr .65fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+    .badge{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 10px;font-size:12px}
+    #tvbox{border-radius:12px;overflow:hidden}
+    .hint{font-size:13px;line-height:1.65;color:var(--muted)}
+    .title{font-weight:700}
   </style>
 </head>
 <body>
   <header>
-    <h1>📊 SnR Signal Pro</h1>
-  </header>
-  <main>
-    <div class="controls">
-      <label for="pair">Pilih Pair:</label>
-      <select id="pair" onchange="loadData()">
-        <option value="xauusd">XAUUSD (Gold)</option>
-        <option value="eurusd">EURUSD</option>
-        <option value="gbpusd">GBPUSD</option>
-        <option value="usdjpy">USDJPY</option>
-        <option value="btcusd">BTCUSD</option>
-        <option value="ethusd">ETHUSD</option>
-      </select>
+    <div class="wrap row">
+      <div class="brand">
+        <div class="logo">📊</div>
+        <div>
+          <h1>SnR Signal Pro</h1>
+          <div class="muted" style="font-size:12px">Support-Resistance • EMA • RSI • MACD • Pivot Points</div>
+        </div>
+      </div>
+      <div class="controls">
+        <select id="pair">
+          <option value="OANDA:XAUUSD" selected>XAUUSD (Gold)</option>
+          <option value="FX:EURUSD">EURUSD</option>
+          <option value="FX:GBPUSD">GBPUSD</option>
+          <option value="FX:USDJPY">USDJPY</option>
+          <option value="BINANCE:BTCUSDT">BTCUSD (Binance)</option>
+          <option value="BINANCE:ETHUSDT">ETHUSD (Binance)</option>
+        </select>
+        <select id="tf">
+          <option value="5">M5</option>
+          <option value="15">M15</option>
+          <option value="60" selected>H1</option>
+          <option value="240">H4</option>
+          <option value="D">D1</option>
+        </select>
+        <select id="theme">
+          <option value="dark" selected>Dark</option>
+          <option value="light">Light</option>
+        </select>
+        <button id="reload">Refresh</button>
+      </div>
     </div>
+  </header>
 
-    <div id="signal" class="card">Loading...</div>
-    <div id="chart"></div>
+  <main class="wrap">
+    <div class="grid">
+      <!-- LEFT: Advanced chart -->
+      <section class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <div class="row">
+            <span class="badge" id="pairBadge">OANDA:XAUUSD</span>
+            <span class="badge" id="tfBadge">TF: H1</span>
+            <span class="badge">Tanpa API Key</span>
+          </div>
+          <div class="row">
+            <label class="muted">Tinggi chart: <span id="hVal">560</span>px</label>
+            <input id="hSlider" type="range" min="380" max="1000" value="560" />
+            <button id="fullBtn">Fullscreen</button>
+          </div>
+        </div>
+
+        <!-- TradingView Advanced Chart -->
+        <div id="tvbox">
+          <div id="tv_chart_container"></div>
+        </div>
+
+        <div class="hint" style="margin-top:14px">
+          <span class="title">Aturan Entry (visual):</span>
+          <ul>
+            <li><b>BUY</b> saat EMA7 menembus EMA21 ke atas + harga reject di Support/Pivot, RSI &gt; 50, MACD &gt; 0.</li>
+            <li><b>SELL</b> saat EMA7 memotong EMA21 ke bawah + harga reject di Resistance/Pivot, RSI &lt; 50, MACD &lt; 0.</li>
+            <li>TP/SL (scalping): gunakan <b>Pivot/Support/Resistance</b> terdekat atau risk:reward 1:2.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- RIGHT: Technicals + Screener + Notes -->
+      <aside class="grid" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <div class="title">Rekomendasi Teknis (TradingView)</div>
+            <span class="muted" style="font-size:12px">Realtime dari TradingView</span>
+          </div>
+          <div id="tv_ta_container" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <div class="title" style="margin-bottom:10px">Screener Cepat</div>
+          <div id="tv_screener_container"></div>
+        </div>
+
+        <div class="card">
+          <div class="title" style="margin-bottom:6px">Tips Presisi</div>
+          <div class="hint">
+            Kombinasi <b>SnR + EMA Cross</b> sering dipakai trader intraday. Akurasi sangat bergantung pada
+            volatilitas & sesi market. Selalu uji di beberapa timeframe (M15/H1/H4) dan pertimbangkan
+            konfirmasi multi-indikator + konfirmasi struktur market.
+          </div>
+        </div>
+      </aside>
+    </div>
   </main>
 
+  <!-- TradingView library is loaded on the fly in create* functions -->
+
   <script>
-    async function loadData() {
-      let pair = document.getElementById("pair").value;
-      const url = `https://stooq.com/q/d/l/?s=${pair}&c=1&d=1`;
+    const pairEl = document.getElementById('pair');
+    const tfEl = document.getElementById('tf');
+    const themeEl = document.getElementById('theme');
+    const reloadBtn = document.getElementById('reload');
+    const hSlider = document.getElementById('hSlider');
+    const hVal = document.getElementById('hVal');
+    const fullBtn = document.getElementById('fullBtn');
+    const pairBadge = document.getElementById('pairBadge');
+    const tfBadge = document.getElementById('tfBadge');
 
-      try {
-        const resp = await fetch(url);
-        const csv = await resp.text();
-        const data = Papa.parse(csv, {header:true}).data
-          .filter(d => d.Date && d.Close)
-          .map(d => ({
-            date: d.Date,
-            close: parseFloat(d.Close),
-            high: parseFloat(d.High),
-            low: parseFloat(d.Low)
-          }));
-
-        if(data.length < 30) {
-          document.getElementById("signal").innerHTML = "⚠️ Data tidak cukup untuk analisa.";
-          return;
-        }
-
-        // === indikator ===
-        function EMA(period, values) {
-          let k = 2/(period+1);
-          let emaArray = [];
-          let ema = values.slice(0, period).reduce((a,b)=>a+b,0)/period;
-          emaArray[period-1] = ema;
-          for (let i=period; i<values.length; i++) {
-            ema = values[i]*k + ema*(1-k);
-            emaArray[i] = ema;
-          }
-          return emaArray;
-        }
-        function RSI(period, values) {
-          let rsi = [];
-          for (let i=period; i<values.length; i++) {
-            let gains=0, losses=0;
-            for (let j=i-period+1;j<=i;j++){
-              let diff = values[j]-values[j-1];
-              if(diff>=0) gains+=diff; else losses-=diff;
-            }
-            let rs = gains/period / (losses/period || 1);
-            rsi[i] = 100 - (100/(1+rs));
-          }
-          return rsi;
-        }
-        function MACD(values) {
-          let ema12 = EMA(12, values);
-          let ema26 = EMA(26, values);
-          let macd = values.map((v,i)=> (ema12[i]||0) - (ema26[i]||0));
-          let signal = EMA(9, macd);
-          return {macd, signal};
-        }
-        function ATR(period, data) {
-          let atr = [];
-          for (let i=period; i<data.length; i++) {
-            let trs = [];
-            for (let j=i-period+1; j<=i; j++) {
-              let high = data[j].high, low = data[j].low, prevClose = data[j-1].close;
-              let tr = Math.max(
-                high-low,
-                Math.abs(high-prevClose),
-                Math.abs(low-prevClose)
-              );
-              trs.push(tr);
-            }
-            atr[i] = trs.reduce((a,b)=>a+b,0)/period;
-          }
-          return atr;
-        }
-
-        const closes = data.map(d=>d.close);
-        const ema7 = EMA(7, closes);
-        const ema21 = EMA(21, closes);
-        const rsi14 = RSI(14, closes);
-        const {macd} = MACD(closes);
-        const atr14 = ATR(14, data);
-
-        function getSignal(i) {
-          if (ema7[i] > ema21[i] && rsi14[i] > 50 && macd[i] > 0) return "BUY";
-          if (ema7[i] < ema21[i] && rsi14[i] < 50 && macd[i] < 0) return "SELL";
-          return "NEUTRAL";
-        }
-
-        let i = closes.length-1;
-        let price = closes[i];
-        let lastSignal = getSignal(i);
-        let atr = atr14[i] || 0;
-
-        let TP = null, SL = null;
-        if (lastSignal === "BUY") {
-          TP = price + 2*atr;
-          SL = price - 1*atr;
-        } else if (lastSignal === "SELL") {
-          TP = price - 2*atr;
-          SL = price + 1*atr;
-        }
-
-        let wins = 0, total = 0;
-        for (let j = closes.length-55; j < closes.length-3; j++) {
-          let sig = getSignal(j);
-          if(sig==="BUY" || sig==="SELL") {
-            total++;
-            if(sig==="BUY" && closes[j+3] > closes[j]) wins++;
-            if(sig==="SELL" && closes[j+3] < closes[j]) wins++;
-          }
-        }
-        let accuracy = total>0 ? (wins/total*100).toFixed(1) : "0";
-
-        document.getElementById("signal").innerHTML = `
-          <h2>${pair.toUpperCase()} → <span class="${lastSignal.toLowerCase()}">${lastSignal}</span></h2>
-          <p>📈 Harga terakhir: <b>${price.toFixed(2)}</b></p>
-          <p>✅ Akurasi Backtest (50 candle): <b>${accuracy}%</b></p>
-          <p>📊 Total sinyal diuji: ${total}, Win: ${wins}</p>
-          ${TP && SL ? `
-            <p>🎯 Target Profit: <b>${TP.toFixed(2)}</b></p>
-            <p>🛑 Stop Loss: <b>${SL.toFixed(2)}</b></p>
-            <p>⚖️ Rasio Risk/Reward: 1:2</p>
-          ` : ""}
-        `;
-
-        // === TradingView Chart Embed ===
-        const tvSymbol = pair.toUpperCase()+"USD";
-        document.getElementById("chart").innerHTML = `
-          <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_${pair}&symbol=${tvSymbol}&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=rgba(0,0,0,1)&studies=[]&theme=dark&style=1&timezone=Etc/UTC"
-          allowfullscreen></iframe>
-        `;
-      } catch (e) {
-        document.getElementById("signal").innerHTML = "❌ Gagal mengambil data.";
-      }
+    function tfLabel(v){
+      return v==='D'?'D1':(v==='240'?'H4':(v==='60'?'H1':(v==='15'?'M15':'M5')));
     }
 
-    loadData();
+    function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+
+    function createAdvancedChart(symbol, interval, theme, height){
+      clearNode(document.getElementById('tv_chart_container'));
+      const s = document.createElement('script');
+      s.src = "https://s3.tradingview.com/tv.js";
+      s.onload = () => {
+        /* eslint-disable no-undef */
+        new TradingView.widget({
+          autosize: true,
+          height: height,
+          symbol: symbol,
+          interval: interval,
+          timezone: "Etc/UTC",
+          theme: theme,
+          style: "1",
+          locale: "en",
+          toolbar_bg: "rgba(0,0,0,1)",
+          hide_top_toolbar: false,
+          hide_legend: false,
+          allow_symbol_change: true,
+          container_id: "tv_chart_container",
+          studies: [
+            "MACD@tv-basicstudies",
+            "RSI@tv-basicstudies",
+            "PivotPointsStandard@tv-basicstudies",
+            "Moving Average Exponential@tv-basicstudies",
+            "Moving Average Exponential@tv-basicstudies"
+          ],
+          // hint: untuk set panjang EMA, user tinggal klik gear di panel indikator
+          withdateranges: true,
+          details: true,
+          hotlist: false,
+          calendar: false,
+          support_host: "https://www.tradingview.com"
+        });
+      };
+      document.body.appendChild(s);
+    }
+
+    function createTechAnalysis(symbol, interval, theme){
+      clearNode(document.getElementById('tv_ta_container'));
+      const w = document.createElement('script');
+      w.src = "https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js";
+      w.async = true;
+      w.innerHTML = JSON.stringify({
+        interval: interval, width: "100%", isTransparent: true, height: 400,
+        symbol: symbol, showIntervalTabs: true, displayMode: "single",
+        colorTheme: theme, locale: "en"
+      });
+      document.getElementById('tv_ta_container').appendChild(w);
+    }
+
+    function createScreener(theme){
+      clearNode(document.getElementById('tv_screener_container'));
+      const w = document.createElement('script');
+      w.src = "https://s3.tradingview.com/external-embedding/embed-widget-screener.js";
+      w.async = true;
+      w.innerHTML = JSON.stringify({
+        width: "100%", height: 420, defaultColumn: "overview",
+        defaultScreen: "forex", market: "forex", colorTheme: theme,
+        showToolbar: true, locale: "en", isTransparent: true
+      });
+      document.getElementById('tv_screener_container').appendChild(w);
+    }
+
+    function refreshAll(){
+      const symbol = pairEl.value;
+      const interval = tfEl.value;
+      const theme = themeEl.value === 'light' ? 'light' : 'dark';
+      const h = parseInt(hSlider.value,10);
+
+      pairBadge.textContent = symbol;
+      tfBadge.textContent = 'TF: ' + tfLabel(interval);
+      hVal.textContent = h;
+
+      createAdvancedChart(symbol, interval, theme, h);
+      createTechAnalysis(symbol, interval, theme);
+      createScreener(theme);
+    }
+
+    // Events
+    reloadBtn.onclick = refreshAll;
+    pairEl.onchange = refreshAll;
+    tfEl.onchange = refreshAll;
+    themeEl.onchange = refreshAll;
+    hSlider.oninput = () => { hVal.textContent = hSlider.value; };
+    hSlider.onchange = refreshAll;
+
+    fullBtn.onclick = () => {
+      const box = document.getElementById('tvbox');
+      if (box.requestFullscreen) box.requestFullscreen();
+      else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+      else if (box.msRequestFullscreen) box.msRequestFullscreen();
+    };
+
+    // first render
+    refreshAll();
   </script>
 </body>
 </html>
